@@ -1,0 +1,71 @@
+name: Feature Request
+description: Suggest an enhancement or new feature for Supernova.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: feature
+    attributes:
+      label: What would you like to see?
+      description: Describe the feature or enhancement you would like added to Supernova.
+      placeholder: |
+        Add support for rendering coin lines.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why would this be useful?
+      description: Explain what problem this feature would solve or how it would improve your workflow.
+      placeholder: |
+        Currently, I have to test over and over again to see if the line is correct.
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: How should it work?
+      description: Describe how you would expect the feature to behave.
+      placeholder: |
+        On galaxy load, the coin lines should appear and update as the object is edited.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      description: Which game would this feature apply to?
+      options:
+        - Super Mario Galaxy 1
+        - Super Mario Galaxy 2
+        - Both
+        - Not game-specific
+    validations:
+      required: true
+
+  - type: input
+    id: existing
+    attributes:
+      label: Existing Implementation
+      description: Does this feature exist in Whitehole or another tool? If so, provide a link or describe how it works.
+      placeholder: "e.g. Whitehole already supports this through..."
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Are there any existing workarounds or alternative approaches you currently use?
+      placeholder: |
+        Currently I edit the relevant BCSV manually.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Anything else that might help explain or demonstrate the idea.
+      placeholder: |
+        Screenshots, mockups, examples from other editors, etc.

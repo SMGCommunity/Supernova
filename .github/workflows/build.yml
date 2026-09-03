@@ -5,9 +5,25 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  BUILD_NUMBER: ${{ github.run_number }}
+
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-13
+            rid: osx-x64
+          - os: macos-14
+            rid: osx-arm64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -20,4 +36,67 @@ jobs:
         run: dotnet restore SMGEditor.sln
 
       - name: Build
-        run: dotnet build SMGEditor.sln --configuration Release --no-restore
+        run: dotnet build SMGEditor.sln --configuration Release --no-restore -p:BuildNumber=${{ github.run_number }}
+
+      - name: Publish
+        run: >
+          dotnet publish src/SMGEditor.Editor/SMGEditor.Editor.csproj
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained true
+          -p:BuildNumber=${{ github.run_number }}
+          --output publish
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path publish/* -DestinationPath Supernova-${{ matrix.rid }}-build${{ github.run_number }}.zip
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: cd publish && zip -qr ../Supernova-${{ matrix.rid }}-build${{ github.run_number }}.zip .
+
+      - name: Package (macOS app bundle)
+        if: runner.os == 'macOS'
+        run: |
+          APP="Supernova.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp -R publish/. "$APP/Contents/MacOS/"
+          sed "s/__BUILD_NUMBER__/${{ github.run_number }}/" packaging/macos/Info.plist > "$APP/Contents/Info.plist"
+          chmod +x "$APP/Contents/MacOS/SMGEditor.Editor"
+          codesign --force --deep --sign - "$APP" || echo "ad-hoc codesign unavailable, shipping unsigned"
+          zip -qry "Supernova-${{ matrix.rid }}-build${{ github.run_number }}.zip" "$APP"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Supernova-${{ matrix.rid }}
+          path: Supernova-${{ matrix.rid }}-build${{ github.run_number }}.zip
+
+  nightly:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Update nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly --yes --cleanup-tag || true
+          gh release create nightly \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Nightly - build ${{ github.run_number }}" \
+            --notes "Automated build ${{ github.run_number }} from ${GITHUB_SHA}. Early alpha - expect bugs and keep backups.
+
+          macOS: the app is unsigned, so after unzipping run \`xattr -dr com.apple.quarantine Supernova.app\` (or right-click > Open) to get past Gatekeeper." \
+            artifacts/*.zip

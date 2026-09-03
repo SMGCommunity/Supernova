@@ -73,7 +73,7 @@ Edit a galaxy's intro camera keyframe by keyframe and preview the result live in
 
 ### Scenario editor
 
-<img src="imgs/scenario-editor.gif" width="720" alt="Editing a galaxy's scenarios">
+<img src="imgs/scenario-editor.png" width="720" alt="Editing a galaxy's scenarios">
 
 Edit a galaxy's scenarios: power stars, comets, and per-zone layers without leaving the editor.
 It also supports adding *new* stars and layers.
@@ -86,25 +86,25 @@ Timeline editing for demo cutscenes.
 
 ### Project system
 
-<!-- TODO: imgs/project-picker.png - the project picker with two projects listed -->
+<img src="imgs/project-picker.pn" width="720" alt="The project picker with two projects listed.">
 
 Make your own edits while never touching the retail filesystem. Each project keeps its own output directory and icon, so retail files stay untouched.
 
 ### Lighting
 
-<!-- TODO: imgs/light-editor.png and imgs/light-applied.png -->
+<img src="imgs/light-editor.png" width="720" alt="Editing a galaxy's light data.">
 
 Render and edit `LightData`, and apply it to the level (including an "auto" mode).
 
 ### Stage music
 
-<!-- TODO: imgs/stage-music.png -->
+<img src="imgs/stage-music.png" width="720" alt="Editing a galaxy's music data.">
 
 Edit a galaxy's stage BGM.
 
 ### ProductMapObjDataTable
 
-<!-- TODO: imgs/productmapobj.png - the object list in the editor -->
+<img src="imgs/productmapobj.png" width="720" alt="Browing ProductMapObjDataTable types.">
 
 Edit `ProductMapObjDataTable` with a helper that lists known objects.
 

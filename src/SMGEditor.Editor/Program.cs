@@ -1965,9 +1965,9 @@ static Dictionary<string, (int Start, int Length)> ResolveDemoPartSpans(DemoTime
 
 void DrawDemoTimelineWindow()
 {
-    var displaySize = new Vector2(demoWindow!.FramebufferSize.X, demoWindow.FramebufferSize.Y);
-    ImGui.SetNextWindowPos(Vector2.Zero);
-    ImGui.SetNextWindowSize(displaySize);
+    ImGuiViewportPtr viewport = ImGui.GetMainViewport();
+    ImGui.SetNextWindowPos(viewport.Pos);
+    ImGui.SetNextWindowSize(viewport.Size);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
         | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus;
@@ -2489,9 +2489,9 @@ CANMTrack[] GetCanmTracks(CANMAnimation anim) =>
 
 void DrawCameraEditorWindow()
 {
-    var displaySize = new Vector2(cameraWindow!.FramebufferSize.X, cameraWindow.FramebufferSize.Y);
-    ImGui.SetNextWindowPos(Vector2.Zero);
-    ImGui.SetNextWindowSize(displaySize);
+    ImGuiViewportPtr viewport = ImGui.GetMainViewport();
+    ImGui.SetNextWindowPos(viewport.Pos);
+    ImGui.SetNextWindowSize(viewport.Size);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
         | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus;
@@ -2773,9 +2773,9 @@ void DrawCanmKeyframeInspector()
 
 void DrawGalaxyHost()
 {
-    var displaySize = new Vector2(galaxyWindow.FramebufferSize.X, galaxyWindow.FramebufferSize.Y);
-    ImGui.SetNextWindowPos(Vector2.Zero);
-    ImGui.SetNextWindowSize(displaySize);
+    ImGuiViewportPtr viewport = ImGui.GetMainViewport();
+    ImGui.SetNextWindowPos(viewport.Pos);
+    ImGui.SetNextWindowSize(viewport.Size);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
         | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus;

@@ -577,6 +577,7 @@ galaxyWindow.Render += _ =>
 
     galaxyWindow.GLContext?.MakeCurrent();
     ImGui.SetCurrentContext(galaxyImgui.Context);
+    galaxyGl.Viewport(0, 0, (uint)galaxyWindow.FramebufferSize.X, (uint)galaxyWindow.FramebufferSize.Y);
     galaxyGl.ClearColor(0.12f, 0.12f, 0.14f, 1f);
     galaxyGl.Clear((uint)ClearBufferMask.ColorBufferBit);
 
@@ -855,6 +856,7 @@ window.Render += _ =>
 
     window.GLContext?.MakeCurrent();
     ImGui.SetCurrentContext(imgui.Context);
+    gl.Viewport(0, 0, (uint)window.FramebufferSize.X, (uint)window.FramebufferSize.Y);
     gl.ClearColor(0.12f, 0.12f, 0.14f, 1f);
     gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
 
@@ -1799,6 +1801,7 @@ void CreateCameraWindow()
 
         cameraWindow.GLContext?.MakeCurrent();
         ImGui.SetCurrentContext(cameraImgui.Context);
+        cameraGl.Viewport(0, 0, (uint)cameraWindow.FramebufferSize.X, (uint)cameraWindow.FramebufferSize.Y);
         cameraGl.ClearColor(0.12f, 0.12f, 0.14f, 1f);
         cameraGl.Clear((uint)ClearBufferMask.ColorBufferBit);
 
@@ -1913,6 +1916,7 @@ void CreateDemoWindow()
 
         demoWindow.GLContext?.MakeCurrent();
         ImGui.SetCurrentContext(demoImgui.Context);
+        demoGl.Viewport(0, 0, (uint)demoWindow.FramebufferSize.X, (uint)demoWindow.FramebufferSize.Y);
         demoGl.ClearColor(0.12f, 0.12f, 0.14f, 1f);
         demoGl.Clear((uint)ClearBufferMask.ColorBufferBit);
 

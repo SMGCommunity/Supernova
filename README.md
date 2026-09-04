@@ -3,7 +3,7 @@
 
 <p align="center">
   <a href="https://discord.gg/ZxEqyYeZbf"><img alt="Luma's Workshop Discord" src="https://img.shields.io/discord/334663517355507714?label=Luma's%20Workshop&logo=discord&logoColor=white&color=5865F2"></a>
-  <a href="https://github.com/SMGCommunity/Supernova/actions/workflows/build.yml"><img alt="Build" src="https://github.com/shibbo/Supernova/actions/workflows/build.yml/badge.svg"></a>
+  <img alt="Build" src="https://github.com/shibbo/Supernova/actions/workflows/build.yml/badge.svg"></a>
 </p>
 
 <p align="center">

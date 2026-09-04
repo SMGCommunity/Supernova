@@ -201,10 +201,31 @@ else if (Array.IndexOf(args, "--show-gamedirs") >= 0)
     hubScreen = HubScreen.GameDirsSetup;
 }
 
+float systemScale = 1f;
+unsafe
+{
+    Glfw glfw = GlfwProvider.GLFW.Value;
+    if (glfw.Init())
+    {
+        Silk.NET.GLFW.Monitor* primaryMonitor = glfw.GetPrimaryMonitor();
+        if (primaryMonitor is not null)
+        {
+            glfw.GetMonitorContentScale(primaryMonitor, out float scaleX, out _);
+            if (scaleX > 0f)
+            {
+                systemScale = scaleX;
+            }
+        }
+    }
+}
+
+Vector2D<int> ScaledWindowSize(int width, int height) => new((int)(width / systemScale), (int)(height / systemScale));
+Vector2D<int> ScaledWindowPosition(int x, int y) => new((int)(x / systemScale), (int)(y / systemScale));
+
 var galaxyWindowOptions = WindowOptions.Default with
 {
-    Size = new Vector2D<int>(1000, 760),
-    Position = new Vector2D<int>(80, 80),
+    Size = ScaledWindowSize(1000, 760),
+    Position = ScaledWindowPosition(80, 80),
     Title = AppTitle(),
 };
 IWindow galaxyWindow = Window.Create(galaxyWindowOptions);
@@ -514,7 +535,7 @@ string[] stageBgmSlotNames = ["", "", "", "", ""];
 int[] stageBgmSlotStates = [-1, -1, -1, -1, -1];
 string stageBgmLoadedSnapshot = "";
 
-const float UiScale = 1.5f;
+float UiScale = 1.5f * systemScale;
 float sidebarWidth = 420 * UiScale;
 float statusBarHeight = 24 * UiScale;
 
@@ -552,7 +573,7 @@ galaxyWindow.Load += () =>
     ImGui.GetStyle().ScaleAllSizes(UiScale);
     UpdateGalaxyWindowTitle();
     ApplyProjectIcon(galaxyWindow);
-    Console.WriteLine($"[WindowInfo] RequestedSize={galaxyWindowOptions.Size} ActualSize={galaxyWindow.Size} FramebufferSize={galaxyWindow.FramebufferSize} DisplaySize={ImGui.GetIO().DisplaySize} Position={galaxyWindow.Position}");
+    Console.WriteLine($"[WindowInfo] SystemScale={systemScale} RequestedSize={galaxyWindowOptions.Size} ActualSize={galaxyWindow.Size} FramebufferSize={galaxyWindow.FramebufferSize} DisplaySize={ImGui.GetIO().DisplaySize} Position={galaxyWindow.Position}");
 };
 
 static float StepDelta(double dt) => Math.Clamp((float)dt, 0f, 0.1f);
@@ -596,7 +617,7 @@ galaxyWindow.FramebufferResize += size => galaxyGl?.Viewport(size);
 
 void CreateLevelEditorWindow()
 {
-    var options = WindowOptions.Default with { Size = new Vector2D<int>(1600, 900), Title = AppTitle(), WindowState = Silk.NET.Windowing.WindowState.Maximized };
+    var options = WindowOptions.Default with { Size = ScaledWindowSize(1600, 900), Title = AppTitle(), WindowState = Silk.NET.Windowing.WindowState.Maximized };
     window = Window.Create(options);
 
     window.Load += () =>
@@ -1754,8 +1775,8 @@ void CreateCameraWindow()
 {
     var cameraWindowOptions = WindowOptions.Default with
     {
-        Size = new Vector2D<int>(680, 500),
-        Position = new Vector2D<int>(540, 100),
+        Size = ScaledWindowSize(680, 500),
+        Position = ScaledWindowPosition(540, 100),
         Title = $"Supernova - {L("Intro Camera Editor")}",
         WindowState = Silk.NET.Windowing.WindowState.Maximized,
     };
@@ -1877,8 +1898,8 @@ void CreateDemoWindow()
 {
     var demoWindowOptions = WindowOptions.Default with
     {
-        Size = new Vector2D<int>(900, 560),
-        Position = new Vector2D<int>(480, 120),
+        Size = ScaledWindowSize(900, 560),
+        Position = ScaledWindowPosition(480, 120),
         Title = $"Supernova - {L("Demo Timeline")}",
         WindowState = Silk.NET.Windowing.WindowState.Normal,
     };

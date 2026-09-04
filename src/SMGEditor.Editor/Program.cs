@@ -7567,21 +7567,12 @@ void DrawViewportPanel()
                     }
                     else
                     {
-                        EditableObject? pickedAreaShape = Picking.PickAreaShapeBorder(mousePos, new Vector2(vw, vh), view, projection,
+                        Picking.Ray ray = Picking.ScreenPointToRay(mousePos, new Vector2(vw, vh), view, projection);
+                        EditableObject? pickedObject = Picking.Pick(ray, GetVisibleObjects());
+                        session.Selected = pickedObject ?? Picking.PickAreaShapeBorder(mousePos, new Vector2(vw, vh), view, projection,
                             GetVisibleAreaShapes().Select(a => (a.Obj, a.Shape, a.World)));
-                        if (pickedAreaShape is not null)
-                        {
-                            session.Selected = pickedAreaShape;
-                            session.SelectedPath = null;
-                            session.SelectedPathPointIndex = null;
-                        }
-                        else
-                        {
-                            Picking.Ray ray = Picking.ScreenPointToRay(mousePos, new Vector2(vw, vh), view, projection);
-                            session.Selected = Picking.Pick(ray, GetVisibleObjects());
-                            session.SelectedPath = null;
-                            session.SelectedPathPointIndex = null;
-                        }
+                        session.SelectedPath = null;
+                        session.SelectedPathPointIndex = null;
                     }
                 }
             }

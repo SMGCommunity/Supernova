@@ -6,12 +6,12 @@ namespace SMGEditor.Viewer;
 
 public static class GalaxyLoader
 {
-    public static string MapArcRelativePath(string gameRootDir, string stageName)
+    public static string MapArcRelativePath(string gameRootDir, string? outputDir, string stageName)
     {
         string stageDataDir = Path.Combine("DATA", "files", "StageData");
-        string nestedAbsolute = ProjectFiles.GameFilePath(gameRootDir, Path.Combine(stageDataDir, stageName, stageName + "Map.arc"));
-        return File.Exists(nestedAbsolute)
-            ? Path.Combine(stageDataDir, stageName, stageName + "Map.arc")
+        string nestedRelative = Path.Combine(stageDataDir, stageName, stageName + "Map.arc");
+        return File.Exists(ProjectFiles.ResolveFile(gameRootDir, outputDir, nestedRelative))
+            ? nestedRelative
             : Path.Combine(stageDataDir, stageName + ".arc");
     }
 
@@ -40,7 +40,7 @@ public static class GalaxyLoader
     public static (List<PlacedObject> Placements, string ObjectDataDir) LoadGalaxyMapPlacements(
         string gameRootDir, string? outputDir, string galaxyName, IReadOnlyList<string> layers)
     {
-        string relativePath = MapArcRelativePath(gameRootDir, galaxyName);
+        string relativePath = MapArcRelativePath(gameRootDir, outputDir, galaxyName);
         (RARCArchive mapArchive, _) = ProjectFiles.LoadArc(gameRootDir, outputDir, relativePath);
 
         var placedObjects = new List<PlacedObject>();
@@ -61,7 +61,7 @@ public static class GalaxyLoader
 
     public static List<PathData> LoadGalaxyPaths(string gameRootDir, string? outputDir, string stageName)
     {
-        string relativePath = MapArcRelativePath(gameRootDir, stageName);
+        string relativePath = MapArcRelativePath(gameRootDir, outputDir, stageName);
         string mapArcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(mapArcPath))
         {
@@ -76,7 +76,7 @@ public static class GalaxyLoader
     {
         var result = new Dictionary<string, IReadOnlyDictionary<string, object?>>();
 
-        string relativePath = MapArcRelativePath(gameRootDir, stageName);
+        string relativePath = MapArcRelativePath(gameRootDir, outputDir, stageName);
         string mapArcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(mapArcPath))
         {
@@ -183,7 +183,7 @@ public static class GalaxyLoader
         foreach (string dir in Directory.EnumerateDirectories(stageDataDir))
         {
             string name = Path.GetFileName(dir);
-            if (File.Exists(ProjectFiles.GameFilePath(root, MapArcRelativePath(root, name))))
+            if (File.Exists(ProjectFiles.GameFilePath(root, MapArcRelativePath(root, null, name))))
             {
                 result.Add(name);
             }
@@ -266,7 +266,7 @@ public static class GalaxyLoader
 
     public static CANMAnimation? TryLoadIntroCamera(string gameRootDir, string? outputDir, string galaxyName, int scenarioNo)
     {
-        string relativePath = MapArcRelativePath(gameRootDir, galaxyName);
+        string relativePath = MapArcRelativePath(gameRootDir, outputDir, galaxyName);
         string mapArcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(mapArcPath))
         {

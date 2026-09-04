@@ -44,7 +44,7 @@ internal static class SaveGalaxy
             return false;
         }
 
-        string relativePath = GalaxyLoader.MapArcRelativePath(session.GameRootDir, bareStageName);
+        string relativePath = GalaxyLoader.MapArcRelativePath(session.GameRootDir, outputDir, bareStageName);
         RARCArchive archive;
         bool wasCompressed;
         try

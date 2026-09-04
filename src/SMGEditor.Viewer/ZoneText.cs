@@ -21,7 +21,7 @@ public static class ZoneText
         MSBTFile? msbt = null;
         MSBFFile? msbf = null;
         string relativePath = ZoneArcRelativePath(language, zoneOrGalaxyName);
-        string arcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string arcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (File.Exists(arcPath))
         {
             RARCArchive arc = RARCArchive.Load(arcPath);
@@ -217,7 +217,7 @@ public static class SMG1Text
         BMGFile? bmg = null;
         Dictionary<string, int>? labelToIndex = null;
         string relativePath = MessageArcRelativePath;
-        string arcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string arcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (File.Exists(arcPath))
         {
             RARCArchive arc = RARCArchive.Load(arcPath);

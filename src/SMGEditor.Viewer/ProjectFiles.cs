@@ -4,20 +4,51 @@ namespace SMGEditor.Viewer;
 
 public static class ProjectFiles
 {
-    public static string ResolveRoot(string gameRootDir, string? outputDir, string relativePath)
+    public static string FilesRoot(string root)
     {
-        if (outputDir is not null && File.Exists(Path.Combine(outputDir, relativePath)))
+        string classic = Path.Combine(root, "DATA", "files");
+        if (Directory.Exists(classic))
         {
-            return outputDir;
+            return classic;
         }
 
-        return gameRootDir;
+        string files = Path.Combine(root, "files");
+        if (Directory.Exists(files))
+        {
+            return files;
+        }
+
+        return root;
+    }
+
+    public static string GameFilePath(string root, string logicalRelativePath)
+    {
+        string normalized = logicalRelativePath.Replace('\\', '/');
+        if (normalized.StartsWith("DATA/files/", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized["DATA/files/".Length..];
+        }
+
+        return Path.Combine(FilesRoot(root), normalized);
+    }
+
+    public static string ResolveFile(string gameRootDir, string? outputDir, string logicalRelativePath)
+    {
+        if (outputDir is not null)
+        {
+            string outputPath = GameFilePath(outputDir, logicalRelativePath);
+            if (File.Exists(outputPath))
+            {
+                return outputPath;
+            }
+        }
+
+        return GameFilePath(gameRootDir, logicalRelativePath);
     }
 
     public static (RARCArchive Archive, bool WasCompressed) LoadArc(string gameRootDir, string? outputDir, string relativePath)
     {
-        string root = ResolveRoot(gameRootDir, outputDir, relativePath);
-        byte[] raw = File.ReadAllBytes(Path.Combine(root, relativePath));
+        byte[] raw = File.ReadAllBytes(ResolveFile(gameRootDir, outputDir, relativePath));
         return (RARCArchive.Load(raw), Yaz0.IsCompressed(raw));
     }
 
@@ -29,7 +60,7 @@ public static class ProjectFiles
             data = Yaz0.Compress(data);
         }
 
-        string fullPath = Path.Combine(outputDir, relativePath);
+        string fullPath = GameFilePath(outputDir, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         File.WriteAllBytes(fullPath, data);
     }

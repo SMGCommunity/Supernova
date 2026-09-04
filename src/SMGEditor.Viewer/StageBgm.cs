@@ -43,7 +43,7 @@ public static class StageBgm
         var scenario = new List<ScenarioBgmEntry>();
         var stage = new List<StageBgmChangeEntry>();
 
-        string arcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, ArcRelativePath), ArcRelativePath);
+        string arcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, ArcRelativePath);
         if (File.Exists(arcPath))
         {
             RARCArchive arc = RARCArchive.Load(arcPath);

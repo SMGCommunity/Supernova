@@ -24,15 +24,6 @@ internal enum AddKind
     Gravity,
 }
 
-internal enum BrowseTarget
-{
-    None,
-    OutputDir,
-    GameDir1,
-    GameDir2,
-    ProjectIcon,
-}
-
 internal sealed class MapObjTableRow
 {
     public string ModelName { get; set; } = "";

@@ -30,7 +30,7 @@ public static class GalaxyText
 
         MSBTFile? result = null;
         string relativePath = SystemMessageRelativePath(language);
-        string arcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string arcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (File.Exists(arcPath))
         {
             RARCArchive arc = RARCArchive.Load(arcPath);

@@ -27,7 +27,7 @@ public static class ProductMapObjTable
 
     public static List<(string ModelName, string ClassName)> Load(string gameRootDir, string? outputDir)
     {
-        string path = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, ArcRelativePath), ArcRelativePath);
+        string path = ProjectFiles.ResolveFile(gameRootDir, outputDir, ArcRelativePath);
         if (!File.Exists(path))
         {
             return [];

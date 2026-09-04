@@ -9,7 +9,7 @@ public static class GalaxyLoader
     public static string MapArcRelativePath(string gameRootDir, string stageName)
     {
         string stageDataDir = Path.Combine("DATA", "files", "StageData");
-        string nestedAbsolute = Path.Combine(gameRootDir, stageDataDir, stageName, stageName + "Map.arc");
+        string nestedAbsolute = ProjectFiles.GameFilePath(gameRootDir, Path.Combine(stageDataDir, stageName, stageName + "Map.arc"));
         return File.Exists(nestedAbsolute)
             ? Path.Combine(stageDataDir, stageName, stageName + "Map.arc")
             : Path.Combine(stageDataDir, stageName + ".arc");
@@ -55,14 +55,14 @@ public static class GalaxyLoader
 
         placedObjects.AddRange(StagePlacementReader.ReadPlacementFile(mapArchive, layers, "jmp/GeneralPos", "GeneralPosInfo"));
 
-        string objectDataDir = Path.Combine(gameRootDir, "DATA", "files", "ObjectData");
+        string objectDataDir = ProjectFiles.GameFilePath(gameRootDir, "DATA/files/ObjectData");
         return (placedObjects, objectDataDir);
     }
 
     public static List<PathData> LoadGalaxyPaths(string gameRootDir, string? outputDir, string stageName)
     {
         string relativePath = MapArcRelativePath(gameRootDir, stageName);
-        string mapArcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string mapArcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(mapArcPath))
         {
             return [];
@@ -77,7 +77,7 @@ public static class GalaxyLoader
         var result = new Dictionary<string, IReadOnlyDictionary<string, object?>>();
 
         string relativePath = MapArcRelativePath(gameRootDir, stageName);
-        string mapArcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string mapArcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(mapArcPath))
         {
             return result;
@@ -116,7 +116,7 @@ public static class GalaxyLoader
 
     public static int? DetectGame(string baseDir)
     {
-        string filesDir = Path.Combine(baseDir, "DATA", "files");
+        string filesDir = ProjectFiles.FilesRoot(baseDir);
         if (!Directory.Exists(Path.Combine(filesDir, "StageData")) || !Directory.Exists(Path.Combine(filesDir, "ObjectData")))
         {
             return null;
@@ -128,7 +128,7 @@ public static class GalaxyLoader
 
     public static List<string> ListGalaxies(string gameRootDir)
     {
-        string stageDataDir = Path.Combine(gameRootDir, "DATA", "files", "StageData");
+        string stageDataDir = ProjectFiles.GameFilePath(gameRootDir, "DATA/files/StageData");
         if (!Directory.Exists(stageDataDir))
         {
             return [];
@@ -150,7 +150,7 @@ public static class GalaxyLoader
 
     public static List<string> ListAllStages(string gameRootDir)
     {
-        string stageDataDir = Path.Combine(gameRootDir, "DATA", "files", "StageData");
+        string stageDataDir = ProjectFiles.GameFilePath(gameRootDir, "DATA/files/StageData");
         if (!Directory.Exists(stageDataDir))
         {
             return [];
@@ -161,7 +161,7 @@ public static class GalaxyLoader
         foreach (string dir in Directory.EnumerateDirectories(stageDataDir))
         {
             string name = Path.GetFileName(dir);
-            if (File.Exists(Path.Combine(gameRootDir, MapArcRelativePath(gameRootDir, name))))
+            if (File.Exists(ProjectFiles.GameFilePath(gameRootDir, MapArcRelativePath(gameRootDir, name))))
             {
                 result.Add(name);
             }
@@ -183,7 +183,7 @@ public static class GalaxyLoader
     public static int? TryGetGalaxyWorld(string gameRootDir, string? outputDir, string galaxyName)
     {
         string relativePath = GalaxyScenarioRelativePath(galaxyName);
-        string arcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string arcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(arcPath))
         {
             return null;
@@ -249,7 +249,7 @@ public static class GalaxyLoader
     public static CANMAnimation? TryLoadIntroCamera(string gameRootDir, string? outputDir, string galaxyName, int scenarioNo)
     {
         string relativePath = MapArcRelativePath(gameRootDir, galaxyName);
-        string mapArcPath = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string mapArcPath = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(mapArcPath))
         {
             return null;

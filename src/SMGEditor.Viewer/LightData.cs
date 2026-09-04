@@ -62,7 +62,7 @@ public static class LightData
     public static List<Dictionary<string, object?>> LoadPresets(string gameRootDir, string? outputDir, int game)
     {
         string relativePath = MasterArcRelativePath(game);
-        string path = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string path = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(path))
         {
             return [];
@@ -110,7 +110,7 @@ public static class LightData
             bcsvName = $"{galaxyName}Light.bcsv";
         }
 
-        string path = Path.Combine(ProjectFiles.ResolveRoot(gameRootDir, outputDir, relativePath), relativePath);
+        string path = ProjectFiles.ResolveFile(gameRootDir, outputDir, relativePath);
         if (!File.Exists(path))
         {
             return [];

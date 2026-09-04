@@ -1,5 +1,6 @@
 using System.Numerics;
 using ImGuiNET;
+using NativeFileDialogSharp;
 using SMGEditor.Core;
 using SMGEditor.Core.Database;
 using SMGEditor.Core.Formats;
@@ -87,6 +88,18 @@ void RenderWindowFrame(IWindow w)
     }
 }
 
+static string? PickFolder(string? startDir)
+{
+    var result = Dialog.FolderPicker(string.IsNullOrWhiteSpace(startDir) ? null : startDir);
+    return result.IsOk ? result.Path : null;
+}
+
+static string? PickFile(string? startDir, string filters)
+{
+    var result = Dialog.FileOpen(filters, string.IsNullOrWhiteSpace(startDir) ? null : startDir);
+    return result.IsOk ? result.Path : null;
+}
+
 string dbCachePath = Path.Combine(AppContext.BaseDirectory, "cache", "objectdb.json");
 
 Console.WriteLine("Loading object database (this may download ~2MB on first run)...");
@@ -128,9 +141,6 @@ string formSMG1Dir = "";
 string formSMG2Dir = "";
 string formSMG2Language = SMG2Languages.Default;
 string? gameDirsError = null;
-
-var fileBrowser = new FileBrowser();
-BrowseTarget pendingBrowse = BrowseTarget.None;
 
 string? editingGalaxyName = null;
 string editGalaxyNameField = "";
@@ -1830,7 +1840,7 @@ void OpenDemoTimeline(EditableObject obj)
     }
     else
     {
-        string demoArcPath = Path.Combine(session.GameRootDir, "DATA", "files", "StageData", stageName, stageName + "Demo.arc");
+        string demoArcPath = ProjectFiles.GameFilePath(session.GameRootDir, $"DATA/files/StageData/{stageName}/{stageName}Demo.arc");
         if (!File.Exists(demoArcPath))
         {
             demoTimelineError = $"No {stageName}Demo.arc found.";
@@ -2788,8 +2798,6 @@ void DrawGalaxyHost()
 
     ImGui.Unindent(20 * UiScale);
 
-    DrawFileBrowser();
-
     ImGui.End();
 }
 
@@ -3411,12 +3419,12 @@ void DrawProjectPickerForm()
     ImGui.Spacing();
     ImGui.TextUnformatted(L("Output directory (edits are saved here, never into the base directory)"));
     ImGui.SetNextItemWidth(fieldWidth);
-    ImGui.InputText("##OutputDirText", ref formOutputDir, 512, ImGuiInputTextFlags.ReadOnly);
+    ImGui.InputText("##OutputDirText", ref formOutputDir, 512);
     ImGui.SameLine();
-    if (ImGui.Button($"{L("Browse...")}##Output"))
+    if (ImGui.Button($"{L("Browse...")}##Output") && PickFolder(formOutputDir) is { } pickedOutput)
     {
-        pendingBrowse = BrowseTarget.OutputDir;
-        fileBrowser.OpenFolder(formOutputDir);
+        formOutputDir = pickedOutput;
+        formError = null;
     }
 
     ImGui.Spacing();
@@ -3500,10 +3508,10 @@ void DrawIconPicker()
     }
 
     NextCell();
-    if (ImGui.Button($"{L("Browse...")}##CustomIcon", new Vector2(cellSize * 2.2f, cellSize) * UiScale))
+    if (ImGui.Button($"{L("Browse...")}##CustomIcon", new Vector2(cellSize * 2.2f, cellSize) * UiScale)
+        && PickFile(null, "png,jpg,jpeg,bmp") is { } pickedIcon)
     {
-        pendingBrowse = BrowseTarget.ProjectIcon;
-        fileBrowser.OpenFile("", ".png", ".jpg", ".jpeg", ".bmp");
+        formIconKey = ProjectIcons.CustomIconKey(pickedIcon);
     }
 
     if (formIconKey is { } previewKey)
@@ -3573,9 +3581,10 @@ void DrawGameDirsSetup()
     ImGui.TextUnformatted(L("Set up your SMG1/SMG2 directories"));
     ImGui.Spacing();
     ImGui.TextWrapped(
-        "Point at your SMG1 and/or SMG2 game dump (the folder containing DATA and UPDATE) - these are "
-        + "read-only and never written to, and shared by every project for that game, so you only set "
-        + "them once. You only need the one(s) you actually have - leave the other blank.");
+        "Point at your SMG1 and/or SMG2 game dump - either the dump root (the folder containing DATA "
+        + "and UPDATE) or the folder that directly holds StageData and ObjectData. These are read-only "
+        + "and never written to, and shared by every project for that game, so you only set them once. "
+        + "You only need the one(s) you actually have - leave the other blank.");
     ImGui.Spacing();
     ImGui.Spacing();
 
@@ -3643,12 +3652,12 @@ void DrawGameDirField(string label, ref string field, int forGame, float fieldWi
 {
     ImGui.TextUnformatted(label);
     ImGui.SetNextItemWidth(fieldWidth);
-    ImGui.InputText($"##Dir{forGame}", ref field, 512, ImGuiInputTextFlags.ReadOnly);
+    ImGui.InputText($"##Dir{forGame}", ref field, 512);
     ImGui.SameLine();
-    if (ImGui.Button($"Browse...##Dir{forGame}"))
+    if (ImGui.Button($"Browse...##Dir{forGame}") && PickFolder(field) is { } pickedDir)
     {
-        pendingBrowse = forGame == 1 ? BrowseTarget.GameDir1 : BrowseTarget.GameDir2;
-        fileBrowser.OpenFolder(field);
+        field = pickedDir;
+        gameDirsError = null;
     }
 
     if (field.Length > 0)
@@ -3658,7 +3667,7 @@ void DrawGameDirField(string label, ref string field, int forGame, float fieldWi
             ? $"Detected: Super Mario Galaxy {forGame}"
             : detected is int wrongGame
                 ? $"This looks like an SMG{wrongGame} dump, not SMG{forGame} - double check the folder."
-                : "This doesn't look like a valid SMG1/SMG2 dump (missing DATA\\files\\StageData or ObjectData).");
+                : "This doesn't look like a valid SMG1/SMG2 dump (no StageData/ObjectData found here or under DATA\\files).");
     }
 }
 
@@ -3692,44 +3701,6 @@ void TrySaveGameDirs()
     UpdateGalaxyWindowTitle();
 }
 
-void DrawFileBrowser()
-{
-    if (pendingBrowse == BrowseTarget.None)
-    {
-        return;
-    }
-
-    switch (fileBrowser.Draw(UiScale))
-    {
-        case FileBrowser.DrawResult.Confirmed:
-            string picked = fileBrowser.SelectedPath;
-            switch (pendingBrowse)
-            {
-                case BrowseTarget.OutputDir:
-                    formOutputDir = picked;
-                    formError = null;
-                    break;
-                case BrowseTarget.GameDir1:
-                    formSMG1Dir = picked;
-                    gameDirsError = null;
-                    break;
-                case BrowseTarget.GameDir2:
-                    formSMG2Dir = picked;
-                    gameDirsError = null;
-                    break;
-                case BrowseTarget.ProjectIcon:
-                    formIconKey = ProjectIcons.CustomIconKey(picked);
-                    break;
-            }
-
-            pendingBrowse = BrowseTarget.None;
-            break;
-
-        case FileBrowser.DrawResult.Cancelled:
-            pendingBrowse = BrowseTarget.None;
-            break;
-    }
-}
 
 void DrawScenarioList()
 {
@@ -5177,7 +5148,7 @@ void BeginPlacement(string internalName, string sourceList, ObjectDbEntry? entry
 
     if (!addedObjectModelCache.TryGetValue(internalName, out LoadedObject? model))
     {
-        string objectDataDir = Path.Combine(session.GameRootDir, "DATA", "files", "ObjectData");
+        string objectDataDir = ProjectFiles.GameFilePath(session.GameRootDir, "DATA/files/ObjectData");
         model = GalaxyLoader.TryLoadObject(internalName, objectDataDir) ?? GalaxyLoader.TryLoadBtiBillboard(internalName, objectDataDir);
         if (model is not null)
         {
@@ -7222,7 +7193,7 @@ void DrawViewportPanel()
         {
             if (cameraTypePreviewPlayerModel is null)
             {
-                string objectDataDir = Path.Combine(activeSession.GameRootDir, "DATA", "files", "ObjectData");
+                string objectDataDir = ProjectFiles.GameFilePath(activeSession.GameRootDir, "DATA/files/ObjectData");
                 cameraTypePreviewPlayerModel = GalaxyLoader.TryLoadObject("Mario", objectDataDir);
                 if (cameraTypePreviewPlayerModel is not null)
                 {

@@ -49,7 +49,7 @@ if (args.Length > 0 && args[0] == "--galaxy")
 }
 else
 {
-    string arcPath = args.Length > 0 ? args[0] : Path.Combine(smgFilesRoot, "2", "DATA", "files", "ObjectData", "Abekobe2DMoveLift.arc");
+    string arcPath = args.Length > 0 ? args[0] : ProjectFiles.GameFilePath(Path.Combine(smgFilesRoot, "2"), "DATA/files/ObjectData/Abekobe2DMoveLift.arc");
     string objectName = Path.GetFileNameWithoutExtension(arcPath);
     objectDataDir = Path.GetDirectoryName(Path.GetFullPath(arcPath)) ?? "";
     placementRequests = [(objectName, Matrix4x4.Identity)];

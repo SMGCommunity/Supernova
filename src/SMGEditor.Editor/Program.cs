@@ -9,6 +9,7 @@ using SMGEditor.Editor;
 using SMGEditor.Editor.CameraSims;
 using SMGEditor.Viewer;
 using Silk.NET.Core;
+using Silk.NET.GLFW;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -34,6 +35,39 @@ AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         NativeCrashDialog.Show(text);
     }
 };
+
+/* found the number of consecutive render failures...can happen on Intel GPUs apparently? */
+int consecutiveGlfwRenderFailures = 0;
+
+void RenderWindowFrame(IWindow w)
+{
+    try
+    {
+        w.DoRender();
+        consecutiveGlfwRenderFailures = 0;
+    }
+    catch (GlfwException ex)
+    {
+        consecutiveGlfwRenderFailures++;
+        string entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] GLFW render error, dropped frame ({consecutiveGlfwRenderFailures} in a row): {ex.Message}{Environment.NewLine}";
+        try
+        {
+            File.AppendAllText(crashLogPath, entry);
+        }
+        catch
+        {
+        }
+
+        Console.Error.WriteLine(entry);
+
+        if (consecutiveGlfwRenderFailures >= 300)
+        {
+            throw new InvalidOperationException(
+                $"OpenGL rendering failed for {consecutiveGlfwRenderFailures} consecutive frames.",
+                ex);
+        }
+    }
+}
 
 string dbCachePath = Path.Combine(AppContext.BaseDirectory, "cache", "objectdb.json");
 
@@ -922,14 +956,14 @@ while (!galaxyWindow.IsClosing)
     {
         galaxyWindow.DoEvents();
         galaxyWindow.DoUpdate();
-        galaxyWindow.DoRender();
+        RenderWindowFrame(galaxyWindow);
     }
 
     if (cameraWindow is { IsClosing: false })
     {
         cameraWindow.DoEvents();
         cameraWindow.DoUpdate();
-        cameraWindow.DoRender();
+        RenderWindowFrame(cameraWindow);
     }
     else if (cameraWindow is not null)
     {
@@ -947,7 +981,7 @@ while (!galaxyWindow.IsClosing)
     {
         demoWindow.DoEvents();
         demoWindow.DoUpdate();
-        demoWindow.DoRender();
+        RenderWindowFrame(demoWindow);
     }
     else if (demoWindow is not null)
     {
@@ -964,7 +998,7 @@ while (!galaxyWindow.IsClosing)
     {
         window.DoEvents();
         window.DoUpdate();
-        window.DoRender();
+        RenderWindowFrame(window);
     }
     else if (window is not null)
     {

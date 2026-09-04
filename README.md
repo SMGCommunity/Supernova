@@ -108,6 +108,18 @@ Edit a galaxy's stage BGM.
 
 Edit `ProductMapObjDataTable` with a helper that lists known objects.
 
+### Plugins
+
+Standalone editor windows loaded from a `plugins/` folder for hack extensions that add their
+own BCSVs or add fields. Approve them under Settings on the galaxy list; open them from **Tools > Plugins**.
+See [`docs/PLUGINS.md`](docs/PLUGINS.md).
+
+### Interface languages
+
+Every button, label, and tooltip goes through a lookup keyed by its English text, so the editor
+can be translated by dropping a `<code>.json` into the `lang/` folder. Pick a language under
+Settings; untranslated strings fall back to English. See [`lang/README.md`](lang/README.md). If you want to contribute a language, ask in the Luma's Workshop Discord!
+
 ## Planned
 
 - User-created themes

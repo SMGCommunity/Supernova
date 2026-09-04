@@ -17,6 +17,11 @@ using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
 
+if (OperatingSystem.IsLinux())
+{
+    Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", null);
+}
+
 string crashLogPath = Path.Combine(AppContext.BaseDirectory, "crash.log");
 AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 {
@@ -229,6 +234,8 @@ var galaxyWindowOptions = WindowOptions.Default with
     Title = AppTitle(),
 };
 IWindow galaxyWindow = Window.Create(galaxyWindowOptions);
+bool galaxyWindowFocused = true;
+galaxyWindow.FocusChanged += focused => galaxyWindowFocused = focused;
 
 GL? galaxyGl = null;
 ImGuiController? galaxyImgui = null;
@@ -456,6 +463,7 @@ bool IsCtrlDown() => ImGui.IsKeyDown(ImGuiKey.LeftCtrl) || ImGui.IsKeyDown(ImGui
 bool IsShiftDown() => ImGui.IsKeyDown(ImGuiKey.LeftShift) || ImGui.IsKeyDown(ImGuiKey.RightShift);
 
 IWindow? window = null;
+bool windowFocused = true;
 GL? gl = null;
 ImGuiController? imgui = null;
 SceneRenderer? renderer = null;
@@ -587,6 +595,10 @@ galaxyWindow.Update += dt =>
 
     ImGui.SetCurrentContext(galaxyImgui.Context);
     galaxyImgui.Update(StepDelta(dt));
+    if (!galaxyWindowFocused)
+    {
+        ImGui.GetIO().MousePos = new Vector2(-float.MaxValue, -float.MaxValue);
+    }
 };
 
 galaxyWindow.Render += _ =>
@@ -619,6 +631,7 @@ void CreateLevelEditorWindow()
 {
     var options = WindowOptions.Default with { Size = ScaledWindowSize(1600, 900), Title = AppTitle(), WindowState = Silk.NET.Windowing.WindowState.Maximized };
     window = Window.Create(options);
+    window.FocusChanged += focused => windowFocused = focused;
 
     window.Load += () =>
     {
@@ -808,6 +821,10 @@ window.Update += dt =>
 
     ImGui.SetCurrentContext(imgui.Context);
     imgui.Update(StepDelta(dt));
+    if (!windowFocused)
+    {
+        ImGui.GetIO().MousePos = new Vector2(-float.MaxValue, -float.MaxValue);
+    }
 
     if (playWaitAnimations)
     {
@@ -1781,6 +1798,8 @@ void CreateCameraWindow()
         WindowState = Silk.NET.Windowing.WindowState.Maximized,
     };
     cameraWindow = Window.Create(cameraWindowOptions);
+    bool cameraWindowFocused = true;
+    cameraWindow.FocusChanged += focused => cameraWindowFocused = focused;
 
     cameraWindow.Load += () =>
     {
@@ -1802,6 +1821,10 @@ void CreateCameraWindow()
 
         ImGui.SetCurrentContext(cameraImgui.Context);
         cameraImgui.Update(StepDelta(dt));
+        if (!cameraWindowFocused)
+        {
+            ImGui.GetIO().MousePos = new Vector2(-float.MaxValue, -float.MaxValue);
+        }
 
         if (cameraPreviewPlaying && introCamera is not null)
         {
@@ -1904,6 +1927,8 @@ void CreateDemoWindow()
         WindowState = Silk.NET.Windowing.WindowState.Normal,
     };
     demoWindow = Window.Create(demoWindowOptions);
+    bool demoWindowFocused = true;
+    demoWindow.FocusChanged += focused => demoWindowFocused = focused;
 
     demoWindow.Load += () =>
     {
@@ -1926,6 +1951,10 @@ void CreateDemoWindow()
 
         ImGui.SetCurrentContext(demoImgui.Context);
         demoImgui.Update(StepDelta(dt));
+        if (!demoWindowFocused)
+        {
+            ImGui.GetIO().MousePos = new Vector2(-float.MaxValue, -float.MaxValue);
+        }
     };
 
     demoWindow.Render += _ =>

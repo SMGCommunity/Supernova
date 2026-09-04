@@ -86,7 +86,7 @@ Timeline editing for demo cutscenes.
 
 ### Project system
 
-<img src="imgs/project-picker.pn" width="720" alt="The project picker with two projects listed.">
+<img src="imgs/project-picker.png" width="720" alt="The project picker with two projects listed.">
 
 Make your own edits while never touching the retail filesystem. Each project keeps its own output directory and icon, so retail files stay untouched.
 

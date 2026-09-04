@@ -126,15 +126,28 @@ public static class GalaxyLoader
         return looksLikeSMG2 ? 2 : 1;
     }
 
-    public static List<string> ListGalaxies(string gameRootDir)
+    public static List<string> ListGalaxies(string gameRootDir, string? outputDir = null)
     {
-        string stageDataDir = ProjectFiles.GameFilePath(gameRootDir, "DATA/files/StageData");
-        if (!Directory.Exists(stageDataDir))
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CollectGalaxies(gameRootDir, result);
+        if (outputDir is not null)
         {
-            return [];
+            CollectGalaxies(outputDir, result);
         }
 
-        var result = new List<string>();
+        var list = result.ToList();
+        list.Sort(StringComparer.OrdinalIgnoreCase);
+        return list;
+    }
+
+    private static void CollectGalaxies(string root, HashSet<string> result)
+    {
+        string stageDataDir = ProjectFiles.GameFilePath(root, "DATA/files/StageData");
+        if (!Directory.Exists(stageDataDir))
+        {
+            return;
+        }
+
         foreach (string dir in Directory.EnumerateDirectories(stageDataDir))
         {
             string name = Path.GetFileName(dir);
@@ -143,25 +156,34 @@ public static class GalaxyLoader
                 result.Add(name);
             }
         }
-
-        result.Sort(StringComparer.OrdinalIgnoreCase);
-        return result;
     }
 
-    public static List<string> ListAllStages(string gameRootDir)
+    public static List<string> ListAllStages(string gameRootDir, string? outputDir = null)
     {
-        string stageDataDir = ProjectFiles.GameFilePath(gameRootDir, "DATA/files/StageData");
-        if (!Directory.Exists(stageDataDir))
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CollectAllStages(gameRootDir, result);
+        if (outputDir is not null)
         {
-            return [];
+            CollectAllStages(outputDir, result);
         }
 
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var list = result.ToList();
+        list.Sort(StringComparer.OrdinalIgnoreCase);
+        return list;
+    }
+
+    private static void CollectAllStages(string root, HashSet<string> result)
+    {
+        string stageDataDir = ProjectFiles.GameFilePath(root, "DATA/files/StageData");
+        if (!Directory.Exists(stageDataDir))
+        {
+            return;
+        }
 
         foreach (string dir in Directory.EnumerateDirectories(stageDataDir))
         {
             string name = Path.GetFileName(dir);
-            if (File.Exists(ProjectFiles.GameFilePath(gameRootDir, MapArcRelativePath(gameRootDir, name))))
+            if (File.Exists(ProjectFiles.GameFilePath(root, MapArcRelativePath(root, name))))
             {
                 result.Add(name);
             }
@@ -171,10 +193,6 @@ public static class GalaxyLoader
         {
             result.Add(Path.GetFileNameWithoutExtension(file));
         }
-
-        var list = result.ToList();
-        list.Sort(StringComparer.OrdinalIgnoreCase);
-        return list;
     }
 
     private static string GalaxyScenarioRelativePath(string galaxyName) =>

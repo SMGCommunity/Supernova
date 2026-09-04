@@ -121,8 +121,8 @@ Dictionary<string, int?> galaxyWorlds = new(StringComparer.OrdinalIgnoreCase);
 
 void PopulateAvailableGalaxies(string rootDir)
 {
-    availableGalaxies = GalaxyLoader.ListGalaxies(rootDir);
-    availableStages = GalaxyLoader.ListAllStages(rootDir);
+    availableGalaxies = GalaxyLoader.ListGalaxies(rootDir, outputDir);
+    availableStages = GalaxyLoader.ListAllStages(rootDir, outputDir);
     galaxyWorlds.Clear();
     foreach (string galaxyName in availableGalaxies)
     {

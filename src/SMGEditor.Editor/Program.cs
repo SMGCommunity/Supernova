@@ -552,6 +552,7 @@ galaxyWindow.Load += () =>
     ImGui.GetStyle().ScaleAllSizes(UiScale);
     UpdateGalaxyWindowTitle();
     ApplyProjectIcon(galaxyWindow);
+    Console.WriteLine($"[WindowInfo] RequestedSize={galaxyWindowOptions.Size} ActualSize={galaxyWindow.Size} FramebufferSize={galaxyWindow.FramebufferSize} DisplaySize={ImGui.GetIO().DisplaySize} Position={galaxyWindow.Position}");
 };
 
 static float StepDelta(double dt) => Math.Clamp((float)dt, 0f, 0.1f);

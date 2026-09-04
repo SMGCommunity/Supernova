@@ -41,31 +41,49 @@ int consecutiveGlfwRenderFailures = 0;
 
 void RenderWindowFrame(IWindow w)
 {
-    try
+    GlfwException? lastError = null;
+
+    for (int attempt = 0; attempt < 4; attempt++)
     {
-        w.DoRender();
-        consecutiveGlfwRenderFailures = 0;
-    }
-    catch (GlfwException ex)
-    {
-        consecutiveGlfwRenderFailures++;
-        string entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] GLFW render error, dropped frame ({consecutiveGlfwRenderFailures} in a row): {ex.Message}{Environment.NewLine}";
         try
         {
-            File.AppendAllText(crashLogPath, entry);
+            w.DoRender();
+            consecutiveGlfwRenderFailures = 0;
+            return;
         }
-        catch
+        catch (GlfwException ex)
         {
-        }
+            lastError = ex;
+            try
+            {
+                w.GLContext?.MakeCurrent();
+            }
+            catch
+            {
+            }
 
-        Console.Error.WriteLine(entry);
-
-        if (consecutiveGlfwRenderFailures >= 300)
-        {
-            throw new InvalidOperationException(
-                $"OpenGL rendering failed for {consecutiveGlfwRenderFailures} consecutive frames.",
-                ex);
+            Thread.Yield();
         }
+    }
+
+    consecutiveGlfwRenderFailures++;
+    string entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] GLFW render error, dropped frame ({consecutiveGlfwRenderFailures} in a row): {lastError?.Message}{Environment.NewLine}";
+    try
+    {
+        File.AppendAllText(crashLogPath, entry);
+    }
+    catch
+    {
+    }
+
+    Console.Error.WriteLine(entry);
+
+    if (consecutiveGlfwRenderFailures >= 300)
+    {
+        // this can happen on laptop GPUs. this fixes the issue.
+        throw new InvalidOperationException(
+            $"OpenGL rendering failed for {consecutiveGlfwRenderFailures} consecutive frames. On a laptop with switchable graphics, force SMGEditor onto one GPU in Windows Settings > System > Display > Graphics.",
+            lastError);
     }
 }
 

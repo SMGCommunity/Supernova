@@ -19,6 +19,7 @@ internal sealed class FileBrowser
     private string _manualPath = "";
     private bool _openRequested;
     private bool _confirmRequested;
+    private bool _shouldBeOpen;
 
     public string SelectedPath { get; private set; } = "";
 
@@ -35,6 +36,7 @@ internal sealed class FileBrowser
         _selectedFile = "";
         _confirmRequested = false;
         _openRequested = true;
+        _shouldBeOpen = true;
     }
 
     public DrawResult Draw(float uiScale)
@@ -43,6 +45,16 @@ internal sealed class FileBrowser
         {
             ImGui.OpenPopup(PopupId);
             _openRequested = false;
+        }
+        else if (_shouldBeOpen && !ImGui.IsPopupOpen(PopupId))
+        {
+            if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+            {
+                _shouldBeOpen = false;
+                return DrawResult.Cancelled;
+            }
+
+            ImGui.OpenPopup(PopupId);
         }
 
         ImGui.SetNextWindowSize(new Vector2(720, 540) * uiScale, ImGuiCond.Appearing);
@@ -55,6 +67,7 @@ internal sealed class FileBrowser
 
         if (ImGui.IsKeyPressed(ImGuiKey.Escape))
         {
+            _shouldBeOpen = false;
             ImGui.CloseCurrentPopup();
             ImGui.EndPopup();
             return DrawResult.Cancelled;
@@ -86,6 +99,7 @@ internal sealed class FileBrowser
         {
             SelectedPath = _mode == Mode.Folder ? _currentDir : Path.Combine(_currentDir, _selectedFile);
             result = DrawResult.Confirmed;
+            _shouldBeOpen = false;
             ImGui.CloseCurrentPopup();
         }
 
@@ -96,6 +110,7 @@ internal sealed class FileBrowser
         if (ImGui.Button(L("Cancel"), new Vector2(100 * uiScale, 0)))
         {
             result = DrawResult.Cancelled;
+            _shouldBeOpen = false;
             ImGui.CloseCurrentPopup();
         }
 

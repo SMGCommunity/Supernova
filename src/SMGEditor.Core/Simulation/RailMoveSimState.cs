@@ -227,16 +227,25 @@ public sealed class RailMoveSimState
 
     private int CurrentPointIndexAtCoord(float coord)
     {
+        if (_points.Count == 0)
+        {
+            return 0;
+        }
+
+        float wrapped = _closed && _totalLength > 0f
+            ? ((coord % _totalLength) + _totalLength) % _totalLength
+            : coord;
+
         int best = 0;
         for (int i = 1; i < _pointDistances.Count; i++)
         {
-            if (_pointDistances[i] <= coord)
+            if (_pointDistances[i] <= wrapped)
             {
                 best = i;
             }
         }
 
-        return best;
+        return best % _points.Count;
     }
 
     private int NearestPointIndex(Vector3 position)

@@ -77,6 +77,7 @@ internal sealed class FlowGraphEditor
         }
 
         var visited = new HashSet<int>();
+        var visitOrder = new List<int>();
         var order = new Queue<int>();
         order.Enqueue(startIndex);
 
@@ -88,6 +89,8 @@ internal sealed class FlowGraphEditor
                 continue;
             }
 
+            visitOrder.Add(index);
+
             foreach (int target in OutgoingEdges(flow, index))
             {
                 if (target >= 0 && target < flow.Nodes.Count)
@@ -98,7 +101,7 @@ internal sealed class FlowGraphEditor
         }
 
         unreachableAddedNodes.RemoveWhere(visited.Contains);
-        nodeIndices = [.. visited.Union(unreachableAddedNodes).OrderBy(i => i)];
+        nodeIndices = [.. visitOrder, .. unreachableAddedNodes.OrderBy(i => i)];
         LayoutNewNodes();
     }
 
@@ -490,7 +493,7 @@ internal sealed class FlowGraphEditor
         ImGui.SetCursorScreenPos(pos);
         ImGui.PushID(index);
         ImGui.BeginGroup();
-        ImGui.SetNextItemWidth(width);
+        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + width);
 
         switch (node)
         {
@@ -515,10 +518,11 @@ internal sealed class FlowGraphEditor
                 break;
 
             case MSBFNode.Branch br:
-                DrawConditionCombo(index, br);
+                DrawConditionCombo(index, br, width);
                 if (MSBFParameterRules.ConditionUsesParameter((MSBFConditions)br.Condition))
                 {
                     int param = br.Parameter;
+                    ImGui.SetNextItemWidth(LabelAwareWidth(width, "Param"));
                     if (ImGui.InputInt("Param", ref param))
                     {
                         ReplaceNode(index, br with { Parameter = (ushort)Math.Clamp(param, 0, 0xFFFF) });
@@ -534,10 +538,11 @@ internal sealed class FlowGraphEditor
                 break;
 
             case MSBFNode.Event ev:
-                DrawEventCombo(index, ev);
+                DrawEventCombo(index, ev, width);
                 if (MSBFParameterRules.EventUsesParameter((MSBFEvents)ev.EventType))
                 {
                     int param = ev.Parameter;
+                    ImGui.SetNextItemWidth(LabelAwareWidth(width, "Param"));
                     if (ImGui.InputInt("Param", ref param))
                     {
                         ReplaceNode(index, ev with { Parameter = (ushort)Math.Clamp(param, 0, 0xFFFF) });
@@ -551,13 +556,15 @@ internal sealed class FlowGraphEditor
                 break;
         }
 
+        ImGui.PopTextWrapPos();
         ImGui.EndGroup();
         ImGui.PopID();
     }
 
-    private void DrawConditionCombo(int index, MSBFNode.Branch br)
+    private void DrawConditionCombo(int index, MSBFNode.Branch br, float width)
     {
         var current = (MSBFConditions)br.Condition;
+        ImGui.SetNextItemWidth(LabelAwareWidth(width, L("Condition")));
         if (ImGui.BeginCombo(L("Condition"), current.ToString()))
         {
             foreach (MSBFConditions value in Enum.GetValues<MSBFConditions>())
@@ -604,6 +611,9 @@ internal sealed class FlowGraphEditor
 
     private string NodeOptionLabel(int index) => flow is null ? index.ToString() : $"[{index}] {TitleFor(flow.Nodes[index])}";
 
+    private static float LabelAwareWidth(float width, string label) =>
+        Math.Max(width - ImGui.CalcTextSize(label).X - ImGui.GetStyle().ItemInnerSpacing.X, 40f);
+
     private void SetBranchTarget(int branchTableSlot, ushort target)
     {
         if (flow is null || gameRootDir is null || outputDir is null || language is null || zoneName is null)
@@ -618,9 +628,10 @@ internal sealed class FlowGraphEditor
         RebuildGraph();
     }
 
-    private void DrawEventCombo(int index, MSBFNode.Event ev)
+    private void DrawEventCombo(int index, MSBFNode.Event ev, float width)
     {
         var current = (MSBFEvents)ev.EventType;
+        ImGui.SetNextItemWidth(LabelAwareWidth(width, L("Event")));
         if (ImGui.BeginCombo(L("Event"), current.ToString()))
         {
             foreach (MSBFEvents value in Enum.GetValues<MSBFEvents>())

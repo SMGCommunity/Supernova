@@ -433,7 +433,7 @@ internal sealed class SMG1FlowGraphEditor
         ImGui.SetCursorScreenPos(pos);
         ImGui.PushID(index);
         ImGui.BeginGroup();
-        ImGui.SetNextItemWidth(width);
+        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + width);
 
         switch (node)
         {
@@ -452,12 +452,14 @@ internal sealed class SMG1FlowGraphEditor
 
             case BMGFlowNode.Branch br:
                 int queryFunc = br.QueryFunctionId;
+                ImGui.SetNextItemWidth(LabelAwareWidth(width, "Query"));
                 if (ImGui.InputInt("Query", ref queryFunc))
                 {
                     ReplaceNode(index, br with { QueryFunctionId = (ushort)Math.Clamp(queryFunc, 0, 0xFFFF) });
                 }
 
                 int queryParam = br.QueryParameter;
+                ImGui.SetNextItemWidth(LabelAwareWidth(width, "Param"));
                 if (ImGui.InputInt("Param", ref queryParam))
                 {
                     ReplaceNode(index, br with { QueryParameter = (ushort)Math.Clamp(queryParam, 0, 0xFFFF) });
@@ -469,6 +471,7 @@ internal sealed class SMG1FlowGraphEditor
 
             case BMGFlowNode.Event ev:
                 int eventFunc = ev.EventFunctionId;
+                ImGui.SetNextItemWidth(LabelAwareWidth(width, "Func"));
                 if (ImGui.InputInt("Func", ref eventFunc))
                 {
                     ReplaceNode(index, ev with { EventFunctionId = (byte)Math.Clamp(eventFunc, 0, 0xFF) });
@@ -478,9 +481,13 @@ internal sealed class SMG1FlowGraphEditor
                 break;
         }
 
+        ImGui.PopTextWrapPos();
         ImGui.EndGroup();
         ImGui.PopID();
     }
+
+    private static float LabelAwareWidth(float width, string label) =>
+        Math.Max(width - ImGui.CalcTextSize(label).X - ImGui.GetStyle().ItemInnerSpacing.X, 40f);
 
     private void DrawTargetCombo(string id, int slot, float width)
     {
@@ -491,7 +498,7 @@ internal sealed class SMG1FlowGraphEditor
 
         ushort current = bmg.FlowIndirectionTable[slot];
         bool isEnd = current == NoNext || current >= bmg.FlowNodes.Count;
-        ImGui.SetNextItemWidth(width);
+        ImGui.SetNextItemWidth(LabelAwareWidth(width, id));
 
         if (ImGui.BeginCombo($"{id}##target{slot}", isEnd ? "(End of Flow)" : NodeOptionLabel(current)))
         {

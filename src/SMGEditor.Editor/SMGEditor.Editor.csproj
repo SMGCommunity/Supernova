@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SMGEditor.Core\SMGEditor.Core.csproj" />
+    <ProjectReference Include="..\SMGEditor.PluginApi\SMGEditor.PluginApi.csproj" />
+    <ProjectReference Include="..\SMGEditor.Viewer\SMGEditor.Viewer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ImGui.NET" Version="1.91.6.1" />
+    <PackageReference Include="Silk.NET.Input" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
+    <PackageReference Include="StbImageSharp" Version="2.30.15" />
+    <PackageReference Include="StbImageWriteSharp" Version="1.16.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built-in project icon gallery (see ProjectIcons.cs) - bundled into the DLL so it works
+         regardless of where the built output is copied to, rather than relying on the repo's
+         project_icons/ folder still being reachable at runtime. -->
+    <EmbeddedResource Include="..\..\project_icons\*.png" LogicalName="ProjectIcons.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\fonts\*.ttf;..\..\fonts\*.otf;..\..\fonts\*.ttc" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\plugins\README.md" Link="plugins\README.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\lang\*.json;..\..\lang\README.md" Link="lang\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="SMGEditor.Editor.Loc" Static="true" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+<Project>
+
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <InformationalVersion Condition="'$(BuildNumber)' == ''">dev</InformationalVersion>
+    <InformationalVersion Condition="'$(BuildNumber)' != ''">$(BuildNumber)</InformationalVersion>
+  </PropertyGroup>
+
+</Project>

@@ -89,12 +89,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete nightly --yes --cleanup-tag || true
-          gh release create nightly \
-            --prerelease \
+          git tag -f nightly "$GITHUB_SHA"
+          git push origin nightly --force
+
+          for f in artifacts/*.zip; do
+            mv "$f" "$(echo "$f" | sed -E 's/-build[0-9]+\.zip$/.zip/')"
+          done
+
+          NOTES="Automated build ${{ github.run_number }} from ${GITHUB_SHA}. Early alpha - expect bugs and keep backups.
+
+          macOS: the app is unsigned, so after unzipping run \`xattr -dr com.apple.quarantine Supernova.app\` (or right-click > Open) to get past Gatekeeper."
+
+          gh release edit nightly \
             --target "$GITHUB_SHA" \
             --title "Nightly - build ${{ github.run_number }}" \
-            --notes "Automated build ${{ github.run_number }} from ${GITHUB_SHA}. Early alpha - expect bugs and keep backups.
+            --notes "$NOTES" \
+            --prerelease \
+            || gh release create nightly \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Nightly - build ${{ github.run_number }}" \
+            --notes "$NOTES"
 
-          macOS: the app is unsigned, so after unzipping run \`xattr -dr com.apple.quarantine Supernova.app\` (or right-click > Open) to get past Gatekeeper." \
-            artifacts/*.zip
+          gh release view nightly --json assets -q '.assets[].name' | xargs -r -I{} gh release delete-asset nightly {} --yes
+          gh release upload nightly artifacts/*.zip

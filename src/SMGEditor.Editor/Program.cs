@@ -1264,10 +1264,10 @@ void DrawHost()
     Vector2 avail = ImGui.GetContentRegionAvail();
     float statusH = statusMessage is null ? 0 : statusBarHeight;
 
-    ImGui.BeginChild("##Sidebar", new Vector2(sidebarWidth, avail.Y - statusH), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##Sidebar", new Vector2(sidebarWidth, avail.Y - statusH), ImGuiChildFlags.Border);
 
     float scenarioBoxHeight = 130 * UiScale;
-    ImGui.BeginChild("##ScenariosBox", new Vector2(0, scenarioBoxHeight), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##ScenariosBox", new Vector2(0, scenarioBoxHeight), ImGuiChildFlags.Border);
     ImGui.TextUnformatted(L("Scenarios"));
     ImGui.Separator();
     DrawScenarioList();
@@ -1276,7 +1276,7 @@ void DrawHost()
     float sidebarAvailY = ImGui.GetContentRegionAvail().Y;
     float treeHeight = MathF.Floor(sidebarAvailY * 0.45f);
 
-    ImGui.BeginChild("##ObjectsTree", new Vector2(0, treeHeight), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##ObjectsTree", new Vector2(0, treeHeight), ImGuiChildFlags.Border);
     ImGui.TextUnformatted(L("Objects"));
     ImGui.Separator();
     DrawAddDeleteCopyButtons();
@@ -1284,7 +1284,7 @@ void DrawHost()
     DrawObjectTree();
     ImGui.EndChild();
 
-    ImGui.BeginChild("##ParametersPanel", Vector2.Zero, ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##ParametersPanel", Vector2.Zero, ImGuiChildFlags.Border);
     ImGui.TextUnformatted(L("Parameters"));
     ImGui.Separator();
     DrawParameterPanel();
@@ -2034,7 +2034,7 @@ void DrawDemoTimelineWindow()
 
     float pad = 4f * UiScale;
 
-    ImGui.BeginChild("##DemoLabels", new Vector2(labelColumnWidth, contentHeight + (16f * UiScale)), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##DemoLabels", new Vector2(labelColumnWidth, contentHeight + (16f * UiScale)), ImGuiChildFlags.Border);
     Vector2 labelOrigin = ImGui.GetCursorScreenPos();
     ImDrawListPtr labelDrawList = ImGui.GetWindowDrawList();
     for (int row = 0; row < demoTrackNames.Length; row++)
@@ -2047,7 +2047,7 @@ void DrawDemoTimelineWindow()
     ImGui.EndChild();
     ImGui.SameLine();
 
-    ImGui.BeginChild("##DemoTimelineScroll", new Vector2(0, contentHeight + (16f * UiScale)), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
+    ImGui.BeginChild("##DemoTimelineScroll", new Vector2(0, contentHeight + (16f * UiScale)), ImGuiChildFlags.Border, ImGuiWindowFlags.HorizontalScrollbar);
 
     Vector2 origin = ImGui.GetCursorScreenPos();
     ImDrawListPtr drawList = ImGui.GetWindowDrawList();
@@ -4531,7 +4531,7 @@ void DrawAddObjectPopup()
 
     ObjectDbEntry? confirmedEntry = null;
 
-    ImGui.BeginChild("##AddObjectList", new Vector2(300 * UiScale, 380 * UiScale), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##AddObjectList", new Vector2(300 * UiScale, 380 * UiScale), ImGuiChildFlags.Border);
     foreach (ObjectDbEntry entry in matches)
     {
         bool isSelected = ReferenceEquals(addObjectSelectedEntry, entry);
@@ -4551,7 +4551,7 @@ void DrawAddObjectPopup()
 
     ImGui.SameLine();
 
-    ImGui.BeginChild("##AddObjectDetails", new Vector2(0, 380 * UiScale), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##AddObjectDetails", new Vector2(0, 380 * UiScale), ImGuiChildFlags.Border);
     if (addObjectSelectedEntry is { } selectedEntry)
     {
         ImGui.TextWrapped(selectedEntry.Name);
@@ -4710,7 +4710,7 @@ void DrawAddZonePopup()
 
     string? confirmedZone = null;
 
-    ImGui.BeginChild("##AddZoneList", new Vector2(0, 320 * UiScale), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##AddZoneList", new Vector2(0, 320 * UiScale), ImGuiChildFlags.Border);
     foreach (string zoneName in source
         .Where(s => !string.Equals(s, session.GalaxyName, StringComparison.OrdinalIgnoreCase) && !alreadyAdded.Contains(s))
         .Where(s => addZoneSearchText.Length == 0 || s.Contains(addZoneSearchText, StringComparison.OrdinalIgnoreCase))
@@ -4791,7 +4791,7 @@ void DrawAddGeneralPosPopup()
 
     string? confirmed = null;
 
-    ImGui.BeginChild("##AddGeneralPosList", new Vector2(0, 360 * UiScale), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##AddGeneralPosList", new Vector2(0, 360 * UiScale), ImGuiChildFlags.Border);
     foreach (GeneralPosNameEntry entry in GeneralPosCatalog.Entries
         .Where(e => addGeneralPosSearchText.Length == 0
             || e.FriendlyName.Contains(addGeneralPosSearchText, StringComparison.OrdinalIgnoreCase)
@@ -5808,7 +5808,7 @@ void DrawLightEditorPopup()
     var referenced = new HashSet<string>(lightGalaxyMap.Select(e => e.AreaLightName), StringComparer.Ordinal);
 
     ImGui.TextUnformatted(LF("{0} - LightID map", session.GalaxyName));
-    ImGui.BeginChild("##lightmap", new Vector2(0, 92 * UiScale), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##lightmap", new Vector2(0, 92 * UiScale), ImGuiChildFlags.Border);
     if (lightGalaxyMap.Count == 0)
     {
         ImGui.TextDisabled(L("No LightID map found for this galaxy."));
@@ -5832,7 +5832,7 @@ void DrawLightEditorPopup()
 
     ImGui.Separator();
 
-    ImGui.BeginChild("##lightlist", new Vector2(280 * UiScale, -36 * UiScale), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##lightlist", new Vector2(280 * UiScale, -36 * UiScale), ImGuiChildFlags.Border);
     ImGui.Checkbox(L("This galaxy only"), ref lightGalaxyOnly);
     ImGui.TextUnformatted(L("Search"));
     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
@@ -5862,7 +5862,7 @@ void DrawLightEditorPopup()
 
     ImGui.SameLine();
 
-    ImGui.BeginChild("##lighteditor", new Vector2(0, -36 * UiScale), ImGuiChildFlags.Borders);
+    ImGui.BeginChild("##lighteditor", new Vector2(0, -36 * UiScale), ImGuiChildFlags.Border);
     if (lightSelectedIndex >= 0 && lightSelectedIndex < lightPresets.Count)
     {
         DrawLightPresetEditor(lightPresets[lightSelectedIndex]);

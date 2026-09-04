@@ -193,13 +193,13 @@ internal sealed class FlowGraphEditor
         }
 
         float canvasWidth = ImGui.GetContentRegionAvail().X * 0.75f;
-        ImGui.BeginChild("##FlowCanvas", new Vector2(canvasWidth, 0), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar | ImGuiWindowFlags.AlwaysVerticalScrollbar);
+        ImGui.BeginChild("##FlowCanvas", new Vector2(canvasWidth, 0), ImGuiChildFlags.Border, ImGuiWindowFlags.HorizontalScrollbar | ImGuiWindowFlags.AlwaysVerticalScrollbar);
         DrawCanvas(uiScale);
         ImGui.EndChild();
 
         ImGui.SameLine();
 
-        ImGui.BeginChild("##FlowDetails", Vector2.Zero, ImGuiChildFlags.Borders);
+        ImGui.BeginChild("##FlowDetails", Vector2.Zero, ImGuiChildFlags.Border);
         DrawDetailsPanel(uiScale);
         ImGui.EndChild();
 

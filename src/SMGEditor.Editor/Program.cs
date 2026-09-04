@@ -207,6 +207,7 @@ else if (Array.IndexOf(args, "--show-gamedirs") >= 0)
 }
 
 float systemScale = 1f;
+bool undoRedoKeysSwapped = false;
 unsafe
 {
     Glfw glfw = GlfwProvider.GLFW.Value;
@@ -221,8 +222,14 @@ unsafe
                 systemScale = scaleX;
             }
         }
+
+        string? physicalZKeyName = glfw.GetKeyName((int)Silk.NET.GLFW.Keys.Z, 0);
+        undoRedoKeysSwapped = string.Equals(physicalZKeyName, "y", StringComparison.OrdinalIgnoreCase);
     }
 }
+
+ImGuiKey undoKey = undoRedoKeysSwapped ? ImGuiKey.Y : ImGuiKey.Z;
+ImGuiKey redoKey = undoRedoKeysSwapped ? ImGuiKey.Z : ImGuiKey.Y;
 
 Vector2D<int> ScaledWindowSize(int width, int height) => new((int)(width / systemScale), (int)(height / systemScale));
 Vector2D<int> ScaledWindowPosition(int x, int y) => new((int)(x / systemScale), (int)(y / systemScale));
@@ -1376,7 +1383,7 @@ void DrawHost()
 
     if (ctrl && session is not null)
     {
-        if (KeyPressedEdge(ImGuiKey.Z))
+        if (KeyPressedEdge(undoKey))
         {
             if (IsShiftDown())
             {
@@ -1387,7 +1394,7 @@ void DrawHost()
                 session.History.Undo();
             }
         }
-        else if (KeyPressedEdge(ImGuiKey.Y))
+        else if (KeyPressedEdge(redoKey))
         {
             session.History.Redo();
         }
@@ -1608,12 +1615,12 @@ void DrawMenuBar()
 
         if (ImGui.BeginMenu(L("Edit")))
         {
-            if (ImGui.MenuItem(L("Undo"), "Ctrl+Z", false, session?.History.CanUndo == true))
+            if (ImGui.MenuItem(L("Undo"), undoRedoKeysSwapped ? "Ctrl+Y" : "Ctrl+Z", false, session?.History.CanUndo == true))
             {
                 session!.History.Undo();
             }
 
-            if (ImGui.MenuItem(L("Redo"), "Ctrl+Y", false, session?.History.CanRedo == true))
+            if (ImGui.MenuItem(L("Redo"), undoRedoKeysSwapped ? "Ctrl+Z" : "Ctrl+Y", false, session?.History.CanRedo == true))
             {
                 session!.History.Redo();
             }

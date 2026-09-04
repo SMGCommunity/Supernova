@@ -245,7 +245,7 @@ internal sealed class ViewportGizmo
             return origin;
         }
 
-        float tc = (a * e - b * d) / denom;
+        float tc = (b * d - a * e) / denom;
         return origin + dir * tc;
     }
 

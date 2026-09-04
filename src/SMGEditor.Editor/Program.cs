@@ -7433,7 +7433,7 @@ void DrawViewportPanel()
             }
             else
             {
-                yaw += io.MouseDelta.X * 0.01f;
+                yaw -= io.MouseDelta.X * 0.01f;
                 pitch = Math.Clamp(pitch - io.MouseDelta.Y * 0.01f, -1.5f, 1.5f);
             }
         }

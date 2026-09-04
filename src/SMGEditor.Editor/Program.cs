@@ -243,6 +243,7 @@ ImGuiController? galaxyImgui = null;
 IWindow? cameraWindow = null;
 GL? cameraGl = null;
 ImGuiController? cameraImgui = null;
+IInputContext? cameraInputContext = null;
 
 bool pendingOpenCameraWindow = false;
 
@@ -274,6 +275,7 @@ string[] CanmTrackNames() => [L("Position X"), L("Position Y"), L("Position Z"),
 IWindow? demoWindow = null;
 GL? demoGl = null;
 ImGuiController? demoImgui = null;
+IInputContext? demoInputContext = null;
 bool pendingOpenDemoWindow = false;
 DemoTimeline? demoTimeline = null;
 string demoTimelineTitle = "";
@@ -466,6 +468,7 @@ IWindow? window = null;
 bool windowFocused = true;
 GL? gl = null;
 ImGuiController? imgui = null;
+IInputContext? windowInputContext = null;
 SceneRenderer? renderer = null;
 ViewportFramebuffer? viewportFbo = null;
 GalaxySession? session = null;
@@ -636,10 +639,10 @@ void CreateLevelEditorWindow()
     window.Load += () =>
     {
         gl = GL.GetApi(window);
-    IInputContext input = window.CreateInput();
+    windowInputContext = window.CreateInput();
 
-    imgui = new ImGuiController(gl, window, input, () => ConfigureFonts(13 * UiScale));
-    HookImGuiKeyEvents(input, imgui);
+    imgui = new ImGuiController(gl, window, windowInputContext, () => ConfigureFonts(13 * UiScale));
+    HookImGuiKeyEvents(windowInputContext, imgui);
     renderer = new SceneRenderer(gl);
     viewportFbo = new ViewportFramebuffer(gl);
 
@@ -918,6 +921,27 @@ window.Render += _ =>
     }
 }
 
+void CloseLevelEditorWindowNow()
+{
+    if (window is null)
+    {
+        return;
+    }
+
+    window.DoEvents();
+    window.GLContext?.MakeCurrent();
+    imgui?.Dispose();
+    windowInputContext?.Dispose();
+    window.Dispose();
+    imgui = null;
+    windowInputContext = null;
+    gl = null;
+    renderer = null;
+    viewportFbo = null;
+    session = null;
+    window = null;
+}
+
 galaxyWindow.Initialize();
 if (pendingOpenLevelEditorWindow)
 {
@@ -987,6 +1011,7 @@ while (!galaxyWindow.IsClosing)
     if (pendingOpenCameraWindow)
     {
         pendingOpenCameraWindow = false;
+        CloseCameraWindowNow();
         CreateCameraWindow();
     }
 
@@ -1001,7 +1026,12 @@ while (!galaxyWindow.IsClosing)
         string galaxyToLoad = pendingGalaxyLoadName;
         pendingGalaxyLoadName = null;
 
-        if (window is null || window.IsClosing)
+        if (window is { IsClosing: true })
+        {
+            CloseLevelEditorWindowNow();
+        }
+
+        if (window is null)
         {
             CreateLevelEditorWindow();
         }
@@ -1018,6 +1048,7 @@ while (!galaxyWindow.IsClosing)
     if (pendingOpenDemoWindow)
     {
         pendingOpenDemoWindow = false;
+        CloseDemoWindowNow();
         CreateDemoWindow();
     }
 
@@ -1036,14 +1067,7 @@ while (!galaxyWindow.IsClosing)
     }
     else if (cameraWindow is not null)
     {
-        cameraWindow.DoEvents();
-        cameraWindow.GLContext?.MakeCurrent();
-        cameraImgui?.Dispose();
-        cameraWindow.Dispose();
-        cameraImgui = null;
-        cameraGl = null;
-        cameraPreviewActive = false;
-        cameraWindow = null;
+        CloseCameraWindowNow();
     }
 
     if (demoWindow is { IsClosing: false })
@@ -1054,13 +1078,7 @@ while (!galaxyWindow.IsClosing)
     }
     else if (demoWindow is not null)
     {
-        demoWindow.DoEvents();
-        demoWindow.GLContext?.MakeCurrent();
-        demoImgui?.Dispose();
-        demoWindow.Dispose();
-        demoImgui = null;
-        demoGl = null;
-        demoWindow = null;
+        CloseDemoWindowNow();
     }
 
     if (window is { IsClosing: false })
@@ -1071,16 +1089,7 @@ while (!galaxyWindow.IsClosing)
     }
     else if (window is not null)
     {
-        window.DoEvents();
-        window.GLContext?.MakeCurrent();
-        imgui?.Dispose();
-        window.Dispose();
-        imgui = null;
-        gl = null;
-        renderer = null;
-        viewportFbo = null;
-        session = null;
-        window = null;
+        CloseLevelEditorWindowNow();
     }
 }
 
@@ -1804,8 +1813,8 @@ void CreateCameraWindow()
     cameraWindow.Load += () =>
     {
         cameraGl = GL.GetApi(cameraWindow);
-        IInputContext cameraInput = cameraWindow.CreateInput();
-        cameraImgui = new ImGuiController(cameraGl, cameraWindow, cameraInput);
+        cameraInputContext = cameraWindow.CreateInput();
+        cameraImgui = new ImGuiController(cameraGl, cameraWindow, cameraInputContext);
         cameraGl.Viewport(0, 0, (uint)cameraWindow.FramebufferSize.X, (uint)cameraWindow.FramebufferSize.Y);
         ImGui.SetCurrentContext(cameraImgui.Context);
         ImGui.GetStyle().ScaleAllSizes(UiScale);
@@ -1861,6 +1870,25 @@ void CreateCameraWindow()
     {
         ImGui.SetCurrentContext(imgui.Context);
     }
+}
+
+void CloseCameraWindowNow()
+{
+    if (cameraWindow is null)
+    {
+        return;
+    }
+
+    cameraWindow.DoEvents();
+    cameraWindow.GLContext?.MakeCurrent();
+    cameraImgui?.Dispose();
+    cameraInputContext?.Dispose();
+    cameraWindow.Dispose();
+    cameraImgui = null;
+    cameraInputContext = null;
+    cameraGl = null;
+    cameraPreviewActive = false;
+    cameraWindow = null;
 }
 
 void OpenDemoTimeline(EditableObject obj)
@@ -1933,9 +1961,9 @@ void CreateDemoWindow()
     demoWindow.Load += () =>
     {
         demoGl = GL.GetApi(demoWindow);
-        IInputContext demoInput = demoWindow.CreateInput();
+        demoInputContext = demoWindow.CreateInput();
 
-        demoImgui = new ImGuiController(demoGl, demoWindow, demoInput, () => ConfigureFonts(13 * UiScale));
+        demoImgui = new ImGuiController(demoGl, demoWindow, demoInputContext, () => ConfigureFonts(13 * UiScale));
         demoGl.Viewport(0, 0, (uint)demoWindow.FramebufferSize.X, (uint)demoWindow.FramebufferSize.Y);
         ImGui.SetCurrentContext(demoImgui.Context);
         ImGui.GetStyle().ScaleAllSizes(UiScale);
@@ -1988,6 +2016,24 @@ void CreateDemoWindow()
     {
         ImGui.SetCurrentContext(imgui.Context);
     }
+}
+
+void CloseDemoWindowNow()
+{
+    if (demoWindow is null)
+    {
+        return;
+    }
+
+    demoWindow.DoEvents();
+    demoWindow.GLContext?.MakeCurrent();
+    demoImgui?.Dispose();
+    demoInputContext?.Dispose();
+    demoWindow.Dispose();
+    demoImgui = null;
+    demoInputContext = null;
+    demoGl = null;
+    demoWindow = null;
 }
 
 

@@ -375,12 +375,14 @@ internal sealed class GalaxySession
             return cached;
         }
 
-        LoadedObject? LoadSimpleMapObjVariant(string modelName, int colorChangeFrame, int texChangeFrame, SceneRenderer sceneRenderer)
+        LoadedObject? LoadSimpleMapObjVariant(
+            string modelName, int colorChangeFrame, int texChangeFrame, SceneRenderer sceneRenderer,
+            string colorBrkFileName = "ColorChange.brk", (string FileName, float Frame)? uvAnimBake = null)
         {
-            string key = $"{modelName}#c{colorChangeFrame}#t{texChangeFrame}";
+            string key = $"{modelName}#c{colorChangeFrame}#t{texChangeFrame}#{colorBrkFileName}#{uvAnimBake?.FileName}";
             if (!loadedModels.TryGetValue(key, out LoadedObject? cached))
             {
-                cached = GalaxyLoader.TryLoadObject(modelName, objectDataDir, colorChangeFrame, texChangeFrame, projectObjectDataDir);
+                cached = GalaxyLoader.TryLoadObject(modelName, objectDataDir, colorChangeFrame, texChangeFrame, projectObjectDataDir, colorBrkFileName, uvAnimBake);
                 if (cached is not null)
                 {
                     sceneRenderer.UploadObject(cached);
@@ -761,6 +763,10 @@ internal sealed class GalaxySession
             else if (po.Name == "StarPiece")
             {
                 model = BuildStarPieceInstance(po);
+            }
+            else if (po.Name == "Caretaker")
+            {
+                model = LoadSimpleMapObjVariant(po.Name, ReadArg(po, "Obj_arg3", 0), -1, renderer, "BodyColor.brk", ("Dirt.btk", 0f));
             }
             else if (SimpleMapObjClasses.Contains(db.FindObject(po.Name)?.ClassName(Game) ?? "")
                 && (ReadArg(po, "Obj_arg0", -1) >= 0 || ReadArg(po, "Obj_arg1", -1) >= 0))

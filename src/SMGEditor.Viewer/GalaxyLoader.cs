@@ -373,7 +373,9 @@ public static class GalaxyLoader
         return File.Exists(basePath) ? basePath : null;
     }
 
-    public static LoadedObject? TryLoadObject(string name, string objectDataDir, int colorChangeFrame = -1, int texChangeFrame = -1, string? projectObjectDataDir = null)
+    public static LoadedObject? TryLoadObject(
+        string name, string objectDataDir, int colorChangeFrame = -1, int texChangeFrame = -1, string? projectObjectDataDir = null,
+        string colorBrkFileName = "ColorChange.brk", (string FileName, float Frame)? uvAnimBake = null)
     {
         if (ResolveObjectDataFile(name + ".arc", objectDataDir, projectObjectDataDir) is not { } arcPath)
         {
@@ -392,7 +394,7 @@ public static class GalaxyLoader
         {
             BDLModel model = BDLModel.Load(bdlFile.Data);
 
-            if (colorChangeFrame >= 0 && archive.Root.FindFileByName("ColorChange.brk") is { } colorChangeFile)
+            if (colorChangeFrame >= 0 && archive.Root.FindFileByName(colorBrkFileName) is { } colorChangeFile)
             {
                 try
                 {
@@ -401,7 +403,7 @@ public static class GalaxyLoader
                 }
                 catch (NotSupportedException ex)
                 {
-                    Console.WriteLine($"  {name}: unsupported ColorChange.brk feature ({ex.Message}), skipping.");
+                    Console.WriteLine($"  {name}: unsupported {colorBrkFileName} feature ({ex.Message}), skipping.");
                 }
             }
 
@@ -421,7 +423,30 @@ public static class GalaxyLoader
                 textureOverrides = overrides.ToDictionary(o => o.MaterialName, o => o.TextureIndexAtFrame(btpFrame));
             }
 
-            List<GpuMesh> meshes = BDLMeshBuilder.Build(model, textureOverrides);
+            IReadOnlyDictionary<string, IReadOnlyDictionary<int, (float A, float B, float C, float D, float Tx, float Ty)>>? uvAnimBakesByMaterial = null;
+            if (uvAnimBake is { } bake && archive.Root.FindFileByName(bake.FileName) is { } uvAnimFile)
+            {
+                try
+                {
+                    BTKAnimation uvAnim = BTKReader.Load(uvAnimFile.Data);
+                    var byMaterial = new Dictionary<string, IReadOnlyDictionary<int, (float, float, float, float, float, float)>>();
+                    foreach (BTKUvAnimEntry entry in uvAnim.Entries)
+                    {
+                        byMaterial[entry.MaterialName] = new Dictionary<int, (float, float, float, float, float, float)>
+                        {
+                            [entry.TexGenIndex] = entry.SampleMatrix(bake.Frame),
+                        };
+                    }
+
+                    uvAnimBakesByMaterial = byMaterial;
+                }
+                catch (NotSupportedException ex)
+                {
+                    Console.WriteLine($"  {name}: unsupported {bake.FileName} feature ({ex.Message}), skipping.");
+                }
+            }
+
+            List<GpuMesh> meshes = BDLMeshBuilder.Build(model, textureOverrides, uvAnimBakesByMaterial);
             (Vector3 min, Vector3 max) = ComputeLocalBounds(meshes);
 
             BCKAnimation? waitAnim = null;

@@ -41,7 +41,9 @@ public sealed class GpuMesh
 
 public static class BDLMeshBuilder
 {
-    public static List<GpuMesh> Build(BDLModel model, IReadOnlyDictionary<string, ushort>? textureOverrides = null)
+    public static List<GpuMesh> Build(
+        BDLModel model, IReadOnlyDictionary<string, ushort>? textureOverrides = null,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<int, (float A, float B, float C, float D, float Tx, float Ty)>>? uvAnimBakesByMaterial = null)
     {
         Matrix4x4[] jointWorldMatrices = ComputeJointWorldMatrices(model);
         List<(int Joint, int Material, int Shape)> assignments = AssignShapesToMaterials(model);
@@ -65,6 +67,19 @@ public static class BDLMeshBuilder
             BDLTexMatrix? uv2EnvMap = ResolveEnvMapMatrix(mat, uvChannel2);
             BDLTexMatrix? uv3EnvMap = ResolveEnvMapMatrix(mat, uvChannel3);
 
+            IReadOnlyDictionary<int, (float A, float B, float C, float D, float Tx, float Ty)>? uvAnimBakes =
+                uvAnimBakesByMaterial is not null && uvAnimBakesByMaterial.TryGetValue(mat.Name, out var bakes) ? bakes : null;
+
+            int rawUv0 = ResolveRawUvSet(mat, uvChannel0);
+            int rawUv1 = ResolveRawUvSet(mat, uvChannel1);
+            int rawUv2 = ResolveRawUvSet(mat, uvChannel2);
+            int rawUv3 = ResolveRawUvSet(mat, uvChannel3);
+
+            (float A, float B, float C, float D, float Tx, float Ty)? scroll0 = ResolveScrollMatrix(mat, uvChannel0, uvAnimBakes);
+            (float A, float B, float C, float D, float Tx, float Ty)? scroll1 = ResolveScrollMatrix(mat, uvChannel1, uvAnimBakes);
+            (float A, float B, float C, float D, float Tx, float Ty)? scroll2 = ResolveScrollMatrix(mat, uvChannel2, uvAnimBakes);
+            (float A, float B, float C, float D, float Tx, float Ty)? scroll3 = ResolveScrollMatrix(mat, uvChannel3, uvAnimBakes);
+
             BDLShape shape = model.Shapes[shapeIndex];
             foreach (BDLPacket packet in shape.Packets)
             {
@@ -79,9 +94,9 @@ public static class BDLMeshBuilder
                 {
                     foreach ((BDLShapeVertex a, BDLShapeVertex b, BDLShapeVertex c) in Triangulate(primitive))
                     {
-                        AppendVertex(vertices, vertexJointIndices, vertexJointWeights, vertexIsWeighted, localPositions, localNormals, model, jointWorldMatrices, a, packet.DrawMatrixIndex, uvChannel0, uvChannel1, uvChannel2, uvChannel3);
-                        AppendVertex(vertices, vertexJointIndices, vertexJointWeights, vertexIsWeighted, localPositions, localNormals, model, jointWorldMatrices, b, packet.DrawMatrixIndex, uvChannel0, uvChannel1, uvChannel2, uvChannel3);
-                        AppendVertex(vertices, vertexJointIndices, vertexJointWeights, vertexIsWeighted, localPositions, localNormals, model, jointWorldMatrices, c, packet.DrawMatrixIndex, uvChannel0, uvChannel1, uvChannel2, uvChannel3);
+                        AppendVertex(vertices, vertexJointIndices, vertexJointWeights, vertexIsWeighted, localPositions, localNormals, model, jointWorldMatrices, a, packet.DrawMatrixIndex, rawUv0, rawUv1, rawUv2, rawUv3, scroll0, scroll1, scroll2, scroll3);
+                        AppendVertex(vertices, vertexJointIndices, vertexJointWeights, vertexIsWeighted, localPositions, localNormals, model, jointWorldMatrices, b, packet.DrawMatrixIndex, rawUv0, rawUv1, rawUv2, rawUv3, scroll0, scroll1, scroll2, scroll3);
+                        AppendVertex(vertices, vertexJointIndices, vertexJointWeights, vertexIsWeighted, localPositions, localNormals, model, jointWorldMatrices, c, packet.DrawMatrixIndex, rawUv0, rawUv1, rawUv2, rawUv3, scroll0, scroll1, scroll2, scroll3);
                     }
                 }
 
@@ -220,6 +235,58 @@ public static class BDLMeshBuilder
         return texMatrix.TexEffect is envMapBasic or envMapOld ? texMatrix : null;
     }
 
+    private static int ResolveRawUvSet(BDLMaterial material, int texCoordGenIndex)
+    {
+        if (texCoordGenIndex < 0 || texCoordGenIndex >= material.TexCoordGens.Count)
+        {
+            return texCoordGenIndex;
+        }
+
+        const byte sourceTex0 = 4;
+        byte source = material.TexCoordGens[texCoordGenIndex].Source;
+        return source is >= sourceTex0 and < sourceTex0 + 8 ? source - sourceTex0 : texCoordGenIndex;
+    }
+
+    private static (float A, float B, float C, float D, float Tx, float Ty)? ResolveScrollMatrix(
+        BDLMaterial material, int texCoordGenIndex, IReadOnlyDictionary<int, (float A, float B, float C, float D, float Tx, float Ty)>? uvAnimBakes)
+    {
+        if (uvAnimBakes is not null && uvAnimBakes.TryGetValue(texCoordGenIndex, out var baked))
+        {
+            return baked;
+        }
+
+        if (texCoordGenIndex < 0 || texCoordGenIndex >= material.TexCoordGens.Count)
+        {
+            return null;
+        }
+
+        BDLTexCoordGen gen = material.TexCoordGens[texCoordGenIndex];
+        const byte matrix3X4 = 0, matrix2X4 = 1, sourceNormal = 1;
+        if (gen.GenType != matrix2X4 && gen.GenType != matrix3X4 || gen.Source == sourceNormal)
+        {
+            return null;
+        }
+
+        int slot = (gen.Matrix - 30) / 3;
+        const byte envMapBasic = 1, envMapOld = 6;
+        if (slot < 0 || slot >= material.TexMatrices.Count || material.TexMatrices[slot] is not { } texMatrix
+            || texMatrix.TexEffect is envMapBasic or envMapOld)
+        {
+            return null;
+        }
+
+        float cos = MathF.Cos(texMatrix.RotationRadians);
+        float sin = MathF.Sin(texMatrix.RotationRadians);
+        float ox = texMatrix.Origin.X, oy = texMatrix.Origin.Y;
+        float a = texMatrix.Scale.X * cos;
+        float b = texMatrix.Scale.X * -sin;
+        float c = texMatrix.Scale.Y * sin;
+        float d = texMatrix.Scale.Y * cos;
+        float tx = texMatrix.Translation.X + ox - ((a * ox) + (b * oy));
+        float ty = texMatrix.Translation.Y + oy - ((c * ox) + (d * oy));
+        return (a, b, c, d, tx, ty);
+    }
+
     private static Matrix4x4 ResolveDrawMatrix(BDLModel model, Matrix4x4[] jointWorldMatrices, ushort drawMatrixIndex)
     {
         BDLDrawMatrix dm = model.DrawMatrices[drawMatrixIndex];
@@ -252,7 +319,11 @@ public static class BDLMeshBuilder
     private static void AppendVertex(
         List<float> dest, List<int[]> vertexJointIndices, List<float[]> vertexJointWeights, List<bool> vertexIsWeighted, List<Vector3> localPositions, List<Vector3> localNormals,
         BDLModel model, Matrix4x4[] jointWorldMatrices, BDLShapeVertex v, ushort packetDrawMatrixIndex,
-        int uvChannel0, int uvChannel1, int uvChannel2, int uvChannel3)
+        int uvChannel0, int uvChannel1, int uvChannel2, int uvChannel3,
+        (float A, float B, float C, float D, float Tx, float Ty)? scroll0 = null,
+        (float A, float B, float C, float D, float Tx, float Ty)? scroll1 = null,
+        (float A, float B, float C, float D, float Tx, float Ty)? scroll2 = null,
+        (float A, float B, float C, float D, float Tx, float Ty)? scroll3 = null)
     {
         BDLVertexData vd = model.VertexData!;
         ushort drawMatrixIndex = v.DrawMatrixIndexOverride ?? packetDrawMatrixIndex;
@@ -275,6 +346,11 @@ public static class BDLMeshBuilder
         Vector2 uv3 = v.TexCoordIndices[uvChannel3] is int ti3 ? vd.TexCoords[uvChannel3]!.GetVector2(ti3) : uv0;
         Vector4 color = v.Color0Index is int ci ? vd.Color0!.GetColor(ci) : Vector4.One;
 
+        uv0 = ApplyScroll(uv0, scroll0);
+        uv1 = ApplyScroll(uv1, scroll1);
+        uv2 = ApplyScroll(uv2, scroll2);
+        uv3 = ApplyScroll(uv3, scroll3);
+
         dest.Add(pos.X); dest.Add(pos.Y); dest.Add(pos.Z);
         dest.Add(nrm.X); dest.Add(nrm.Y); dest.Add(nrm.Z);
         dest.Add(uv0.X); dest.Add(uv0.Y);
@@ -290,6 +366,11 @@ public static class BDLMeshBuilder
         localPositions.Add(localPos);
         localNormals.Add(localNrm);
     }
+
+    private static Vector2 ApplyScroll(Vector2 uv, (float A, float B, float C, float D, float Tx, float Ty)? scroll) =>
+        scroll is { } t
+            ? new Vector2((t.A * uv.X) + (t.B * uv.Y) + t.Tx, (t.C * uv.X) + (t.D * uv.Y) + t.Ty)
+            : uv;
 
     private static IEnumerable<(BDLShapeVertex, BDLShapeVertex, BDLShapeVertex)> Triangulate(BDLPrimitive primitive)
     {

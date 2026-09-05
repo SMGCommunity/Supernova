@@ -321,6 +321,8 @@ internal sealed class GalaxySession
             return;
         }
 
+        string? projectObjectDataDir = OutputDir is not null ? ProjectFiles.GameFilePath(OutputDir, "DATA/files/ObjectData") : null;
+
         LoadedStagePaths.Add(stagePath);
         ZoneWorldMatrices[stagePath] = zoneWorldMatrix;
 
@@ -361,7 +363,7 @@ internal sealed class GalaxySession
         {
             if (!loadedModels.TryGetValue(modelName, out LoadedObject? cached))
             {
-                cached = GalaxyLoader.TryLoadObject(modelName, objectDataDir);
+                cached = GalaxyLoader.TryLoadObject(modelName, objectDataDir, projectObjectDataDir: projectObjectDataDir);
                 if (cached is not null)
                 {
                     renderer.UploadObject(cached);
@@ -378,7 +380,7 @@ internal sealed class GalaxySession
             string key = $"{modelName}#c{colorChangeFrame}#t{texChangeFrame}";
             if (!loadedModels.TryGetValue(key, out LoadedObject? cached))
             {
-                cached = GalaxyLoader.TryLoadObject(modelName, objectDataDir, colorChangeFrame, texChangeFrame);
+                cached = GalaxyLoader.TryLoadObject(modelName, objectDataDir, colorChangeFrame, texChangeFrame, projectObjectDataDir);
                 if (cached is not null)
                 {
                     sceneRenderer.UploadObject(cached);
@@ -406,7 +408,7 @@ internal sealed class GalaxySession
 
             if (ribbonMaterial is { } baseMaterial)
             {
-                if (GalaxyLoader.TryLoadBrk(placement.Name, objectDataDir) is { } brk)
+                if (GalaxyLoader.TryLoadBrk(placement.Name, objectDataDir, projectObjectDataDir) is { } brk)
                 {
                     ribbonMaterial = brk.ApplyToMaterial(baseMaterial, modelType);
                     changed = true;
@@ -424,7 +426,7 @@ internal sealed class GalaxySession
             BDLModel ribbonModel = changed && ribbonMaterial is not null ? template.Model.WithMaterials([ribbonMaterial]) : template.Model;
 
             BTKUvAnimEntry? uvAnim = null;
-            if (ribbonModel.Materials.Count > 0 && GalaxyLoader.TryLoadBtk(placement.Name, objectDataDir) is { } btk)
+            if (ribbonModel.Materials.Count > 0 && GalaxyLoader.TryLoadBtk(placement.Name, objectDataDir, projectObjectDataDir: projectObjectDataDir) is { } btk)
             {
                 uvAnim = btk.Entries.FirstOrDefault(e => e.MaterialName == ribbonModel.Materials[0].Name);
                 if (btk.IsMaya && uvAnim is not null)
@@ -475,7 +477,7 @@ internal sealed class GalaxySession
                 return (null, null);
             }
 
-            if (GalaxyLoader.TryLoadWaterWaveTextures(objectDataDir) is not { } textures)
+            if (GalaxyLoader.TryLoadWaterWaveTextures(objectDataDir, projectObjectDataDir) is not { } textures)
             {
                 return (null, null);
             }
@@ -656,7 +658,7 @@ internal sealed class GalaxySession
             }
 
             if (isFirstStarPieceLoad &&
-                GalaxyLoader.TryLoadBtk("StarPiece", objectDataDir, "Gift") is { } giftBtk)
+                GalaxyLoader.TryLoadBtk("StarPiece", objectDataDir, "Gift", projectObjectDataDir) is { } giftBtk)
             {
                 BTKUvAnimEntry? entry = giftBtk.Entries.FirstOrDefault(e => e.MaterialName == template.Model.Materials[0].Name);
                 if (entry is not null)
@@ -767,7 +769,7 @@ internal sealed class GalaxySession
             }
             else
             {
-                model = LoadAndCacheModel(po.Name) ?? GalaxyLoader.TryLoadBtiBillboard(po.Name, objectDataDir);
+                model = LoadAndCacheModel(po.Name) ?? GalaxyLoader.TryLoadBtiBillboard(po.Name, objectDataDir, projectObjectDataDir);
             }
 
             ObjectDbEntry? dbEntry = db.FindObject(po.Name);

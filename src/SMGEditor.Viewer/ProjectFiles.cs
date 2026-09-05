@@ -2,6 +2,7 @@ using SMGEditor.Core.Formats;
 
 namespace SMGEditor.Viewer;
 
+
 public static class ProjectFiles
 {
     public static string FilesRoot(string root)
@@ -36,14 +37,52 @@ public static class ProjectFiles
     {
         if (outputDir is not null)
         {
-            string outputPath = GameFilePath(outputDir, logicalRelativePath);
+            string outputPath = ResolveCaseInsensitive(GameFilePath(outputDir, logicalRelativePath));
             if (File.Exists(outputPath))
             {
                 return outputPath;
             }
         }
 
-        return GameFilePath(gameRootDir, logicalRelativePath);
+        return ResolveCaseInsensitive(GameFilePath(gameRootDir, logicalRelativePath));
+    }
+
+    public static string ResolveCaseInsensitive(string path)
+    {
+        if (File.Exists(path) || Directory.Exists(path))
+        {
+            return path;
+        }
+
+        string? root = Path.GetPathRoot(path);
+        if (string.IsNullOrEmpty(root) || !Directory.Exists(root))
+        {
+            return path;
+        }
+
+        string current = root;
+        foreach (string segment in path[root.Length..].Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+        {
+            if (segment.Length == 0)
+            {
+                continue;
+            }
+
+            string candidate = Path.Combine(current, segment);
+            if (File.Exists(candidate) || Directory.Exists(candidate))
+            {
+                current = candidate;
+                continue;
+            }
+
+            string? match = Directory.Exists(current)
+                ? Directory.EnumerateFileSystemEntries(current).FirstOrDefault(e => string.Equals(Path.GetFileName(e), segment, StringComparison.OrdinalIgnoreCase))
+                : null;
+
+            current = match ?? candidate;
+        }
+
+        return current;
     }
 
     public static (RARCArchive Archive, bool WasCompressed) LoadArc(string gameRootDir, string? outputDir, string relativePath)

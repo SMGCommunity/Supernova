@@ -1929,7 +1929,7 @@ void OpenDemoTimeline(EditableObject obj)
     }
     else
     {
-        string demoArcPath = ProjectFiles.GameFilePath(session.GameRootDir, $"DATA/files/StageData/{stageName}/{stageName}Demo.arc");
+        string demoArcPath = ProjectFiles.ResolveFile(session.GameRootDir, session.OutputDir, $"DATA/files/StageData/{stageName}/{stageName}Demo.arc");
         if (!File.Exists(demoArcPath))
         {
             demoTimelineError = $"No {stageName}Demo.arc found.";
@@ -5263,7 +5263,9 @@ void BeginPlacement(string internalName, string sourceList, ObjectDbEntry? entry
     if (!addedObjectModelCache.TryGetValue(internalName, out LoadedObject? model))
     {
         string objectDataDir = ProjectFiles.GameFilePath(session.GameRootDir, "DATA/files/ObjectData");
-        model = GalaxyLoader.TryLoadObject(internalName, objectDataDir) ?? GalaxyLoader.TryLoadBtiBillboard(internalName, objectDataDir);
+        string? projectObjectDataDir = session.OutputDir is not null ? ProjectFiles.GameFilePath(session.OutputDir, "DATA/files/ObjectData") : null;
+        model = GalaxyLoader.TryLoadObject(internalName, objectDataDir, projectObjectDataDir: projectObjectDataDir)
+            ?? GalaxyLoader.TryLoadBtiBillboard(internalName, objectDataDir, projectObjectDataDir);
         if (model is not null)
         {
             renderer.UploadObject(model);
@@ -7308,7 +7310,8 @@ void DrawViewportPanel()
             if (cameraTypePreviewPlayerModel is null)
             {
                 string objectDataDir = ProjectFiles.GameFilePath(activeSession.GameRootDir, "DATA/files/ObjectData");
-                cameraTypePreviewPlayerModel = GalaxyLoader.TryLoadObject("Mario", objectDataDir);
+                string? projectObjectDataDir = activeSession.OutputDir is not null ? ProjectFiles.GameFilePath(activeSession.OutputDir, "DATA/files/ObjectData") : null;
+                cameraTypePreviewPlayerModel = GalaxyLoader.TryLoadObject("Mario", objectDataDir, projectObjectDataDir: projectObjectDataDir);
                 if (cameraTypePreviewPlayerModel is not null)
                 {
                     renderer.UploadObject(cameraTypePreviewPlayerModel);

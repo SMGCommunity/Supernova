@@ -358,10 +358,24 @@ public static class GalaxyLoader
         return StarPieceColors[new Random(seed).Next(StarPieceColors.Length)];
     }
 
-    public static LoadedObject? TryLoadObject(string name, string objectDataDir, int colorChangeFrame = -1, int texChangeFrame = -1)
+    private static string? ResolveObjectDataFile(string fileName, string objectDataDir, string? projectObjectDataDir)
     {
-        string arcPath = Path.Combine(objectDataDir, name + ".arc");
-        if (!File.Exists(arcPath))
+        if (projectObjectDataDir is not null)
+        {
+            string overridePath = ProjectFiles.ResolveCaseInsensitive(Path.Combine(projectObjectDataDir, fileName));
+            if (File.Exists(overridePath))
+            {
+                return overridePath;
+            }
+        }
+
+        string basePath = ProjectFiles.ResolveCaseInsensitive(Path.Combine(objectDataDir, fileName));
+        return File.Exists(basePath) ? basePath : null;
+    }
+
+    public static LoadedObject? TryLoadObject(string name, string objectDataDir, int colorChangeFrame = -1, int texChangeFrame = -1, string? projectObjectDataDir = null)
+    {
+        if (ResolveObjectDataFile(name + ".arc", objectDataDir, projectObjectDataDir) is not { } arcPath)
         {
             return null;
         }
@@ -433,10 +447,9 @@ public static class GalaxyLoader
         }
     }
 
-    public static BRKAnimation? TryLoadBrk(string name, string objectDataDir)
+    public static BRKAnimation? TryLoadBrk(string name, string objectDataDir, string? projectObjectDataDir = null)
     {
-        string arcPath = Path.Combine(objectDataDir, name + ".arc");
-        if (!File.Exists(arcPath))
+        if (ResolveObjectDataFile(name + ".arc", objectDataDir, projectObjectDataDir) is not { } arcPath)
         {
             return null;
         }
@@ -459,10 +472,9 @@ public static class GalaxyLoader
         }
     }
 
-    public static BTKAnimation? TryLoadBtk(string name, string objectDataDir, string? btkFileNameOverride = null)
+    public static BTKAnimation? TryLoadBtk(string name, string objectDataDir, string? btkFileNameOverride = null, string? projectObjectDataDir = null)
     {
-        string arcPath = Path.Combine(objectDataDir, name + ".arc");
-        if (!File.Exists(arcPath))
+        if (ResolveObjectDataFile(name + ".arc", objectDataDir, projectObjectDataDir) is not { } arcPath)
         {
             return null;
         }
@@ -499,15 +511,14 @@ public static class GalaxyLoader
         ["FlagKoopaCastle"] = (new Vector3(0f, 150f, 0f), new Vector3(0f, -150f, 600f), true),
     };
 
-    public static LoadedObject? TryLoadBtiBillboard(string name, string objectDataDir)
+    public static LoadedObject? TryLoadBtiBillboard(string name, string objectDataDir, string? projectObjectDataDir = null)
     {
         if (!BTIBillboardGeometry.TryGetValue(name, out (Vector3 Pt1, Vector3 Pt2, bool Vertical) geo))
         {
             return null;
         }
 
-        string arcPath = Path.Combine(objectDataDir, name + ".arc");
-        if (!File.Exists(arcPath))
+        if (ResolveObjectDataFile(name + ".arc", objectDataDir, projectObjectDataDir) is not { } arcPath)
         {
             return null;
         }
@@ -583,10 +594,9 @@ public static class GalaxyLoader
         return new LoadedObject { Name = name, Model = model, Meshes = [mesh], LocalBoundsMin = min, LocalBoundsMax = max, WaitAnimation = null };
     }
 
-    public static (BTITexture Water, BTITexture Indirect)? TryLoadWaterWaveTextures(string objectDataDir)
+    public static (BTITexture Water, BTITexture Indirect)? TryLoadWaterWaveTextures(string objectDataDir, string? projectObjectDataDir = null)
     {
-        string arcPath = Path.Combine(objectDataDir, "WaterWave.arc");
-        if (!File.Exists(arcPath))
+        if (ResolveObjectDataFile("WaterWave.arc", objectDataDir, projectObjectDataDir) is not { } arcPath)
         {
             return null;
         }

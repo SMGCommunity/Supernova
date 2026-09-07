@@ -30,7 +30,7 @@ public sealed class RailCoordSampleTable
             for (int s = 1; s <= samplesPerSegment; s++)
             {
                 float t = s / (float)samplesPerSegment;
-                Vector3 sample = SampleCubicBezier(a.Position, a.ControlPointOut, b.ControlPointIn, b.Position, t);
+                Vector3 sample = VectorMath.SampleCubicBezier(a.Position, a.ControlPointOut, b.ControlPointIn, b.Position, t);
                 cumulative += Vector3.Distance(previous, sample);
                 previous = sample;
                 lookup.Add((cumulative, sample));
@@ -93,11 +93,5 @@ public sealed class RailCoordSampleTable
 
         float t = span > 0f ? remainder / span : 0f;
         return Vector3.Lerp(Positions[index], Positions[index + 1], t);
-    }
-
-    private static Vector3 SampleCubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
-    {
-        float u = 1f - t;
-        return u * u * u * p0 + 3f * u * u * t * p1 + 3f * u * t * t * p2 + t * t * t * p3;
     }
 }

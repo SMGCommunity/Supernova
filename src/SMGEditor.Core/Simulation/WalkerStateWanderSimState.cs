@@ -90,7 +90,7 @@ public sealed class WalkerStateWanderSimState
     private Vector3 PickNextTarget()
     {
         var v = new Vector3(NextRange(-1f, 1f), NextRange(-1f, 1f), NextRange(-1f, 1f));
-        v = NormalizeOrZero(v);
+        v = VectorMath.NormalizeOrZero(v);
         v.Y = 0f;
         return _center + (v * RadiusUnits);
     }
@@ -99,27 +99,21 @@ public sealed class WalkerStateWanderSimState
 
     private static Vector3 Flatten(Vector3 v) => new(v.X, 0f, v.Z);
 
-    private static Vector3 NormalizeOrZero(Vector3 v)
-    {
-        float lenSq = v.LengthSquared();
-        return lenSq > 1e-8f ? v / MathF.Sqrt(lenSq) : Vector3.Zero;
-    }
-
     private static Vector3 FlattenNormalizeOrDefault(Vector3 v, Vector3 fallback)
     {
-        Vector3 flat = NormalizeOrZero(Flatten(v));
+        Vector3 flat = VectorMath.NormalizeOrZero(Flatten(v));
         return flat != Vector3.Zero ? flat : fallback;
     }
 
     private static Vector3 TurnTowardsHorizontal(Vector3 from, Vector3 to, float maxDegrees)
     {
-        Vector3 target = NormalizeOrZero(Flatten(to));
+        Vector3 target = VectorMath.NormalizeOrZero(Flatten(to));
         if (target == Vector3.Zero)
         {
             return from;
         }
 
-        Vector3 current = NormalizeOrZero(Flatten(from));
+        Vector3 current = VectorMath.NormalizeOrZero(Flatten(from));
         if (current == Vector3.Zero)
         {
             return target;
@@ -136,8 +130,8 @@ public sealed class WalkerStateWanderSimState
 
     private static float AngleBetweenDegrees(Vector3 a, Vector3 b)
     {
-        Vector3 na = NormalizeOrZero(Flatten(a));
-        Vector3 nb = NormalizeOrZero(Flatten(b));
+        Vector3 na = VectorMath.NormalizeOrZero(Flatten(a));
+        Vector3 nb = VectorMath.NormalizeOrZero(Flatten(b));
         if (na == Vector3.Zero || nb == Vector3.Zero)
         {
             return 180f;

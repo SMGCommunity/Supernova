@@ -53,9 +53,9 @@ public static class StagePathReader
                 {
                     points.Add(new PathPoint
                     {
-                        Position = ReadVector3(prow, "pnt0_x", "pnt0_y", "pnt0_z"),
-                        ControlPointIn = ReadVector3(prow, "pnt1_x", "pnt1_y", "pnt1_z"),
-                        ControlPointOut = ReadVector3(prow, "pnt2_x", "pnt2_y", "pnt2_z"),
+                        Position = StageBcsvVector.ReadVector3(prow, "pnt0_x", "pnt0_y", "pnt0_z"),
+                        ControlPointIn = StageBcsvVector.ReadVector3(prow, "pnt1_x", "pnt1_y", "pnt1_z"),
+                        ControlPointOut = StageBcsvVector.ReadVector3(prow, "pnt2_x", "pnt2_y", "pnt2_z"),
                         Fields = new Dictionary<string, object?>(prow),
                     });
                 }
@@ -78,18 +78,6 @@ public static class StagePathReader
 
     private static int GetInt(IReadOnlyDictionary<string, object?> row, string key) =>
         row.TryGetValue(key, out object? v) && v is int i ? i : 0;
-
-    private static Vector3 ReadVector3(IReadOnlyDictionary<string, object?> row, string x, string y, string z)
-    {
-        if (row.TryGetValue(x, out object? xv) && xv is float xf &&
-            row.TryGetValue(y, out object? yv) && yv is float yf &&
-            row.TryGetValue(z, out object? zv) && zv is float zf)
-        {
-            return new Vector3(xf, yf, zf);
-        }
-
-        return Vector3.Zero;
-    }
 }
 
 public static class PathTessellator
@@ -118,16 +106,11 @@ public static class PathTessellator
             for (int s = 1; s <= samplesPerSegment; s++)
             {
                 float t = s / (float)samplesPerSegment;
-                result.Add(SampleCubicBezier(a.Position, a.ControlPointOut, b.ControlPointIn, b.Position, t));
+                result.Add(VectorMath.SampleCubicBezier(a.Position, a.ControlPointOut, b.ControlPointIn, b.Position, t));
             }
         }
 
         return result;
     }
 
-    private static Vector3 SampleCubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
-    {
-        float u = 1f - t;
-        return u * u * u * p0 + 3f * u * u * t * p1 + 3f * u * t * t * p2 + t * t * t * p3;
-    }
 }

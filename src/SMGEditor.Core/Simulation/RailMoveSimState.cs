@@ -286,7 +286,7 @@ public sealed class RailMoveSimState
             for (int s = 1; s <= samplesPerSegment; s++)
             {
                 float t = s / (float)samplesPerSegment;
-                Vector3 sample = SampleCubicBezier(a.Position, a.ControlPointOut, b.ControlPointIn, b.Position, t);
+                Vector3 sample = VectorMath.SampleCubicBezier(a.Position, a.ControlPointOut, b.ControlPointIn, b.Position, t);
                 cumulative += Vector3.Distance(previous, sample);
                 previous = sample;
                 _lookup.Add((cumulative, sample));
@@ -326,12 +326,6 @@ public sealed class RailMoveSimState
         }
 
         return _lookup[^1].Position;
-    }
-
-    private static Vector3 SampleCubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
-    {
-        float u = 1f - t;
-        return u * u * u * p0 + 3f * u * u * t * p1 + 3f * u * t * t * p2 + t * t * t * p3;
     }
 
     private static int ReadArg(IReadOnlyDictionary<string, object?> fields, string key, int defaultValue) =>

@@ -779,8 +779,5 @@ public sealed class BDLModel
 
     private static float RotationUnitsToDegrees(short value) => value * (180f / 32768f);
 
-    private static Vector3 ReadVector3(byte[] data, int offset) => new(
-        BinaryPrimitives.ReadSingleBigEndian(data.AsSpan(offset + 0, 4)),
-        BinaryPrimitives.ReadSingleBigEndian(data.AsSpan(offset + 4, 4)),
-        BinaryPrimitives.ReadSingleBigEndian(data.AsSpan(offset + 8, 4)));
+    private static Vector3 ReadVector3(byte[] data, int offset) => BinaryVectors.ReadVector3BigEndian(data, offset);
 }

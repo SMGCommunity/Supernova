@@ -330,13 +330,13 @@ public static class GalaxyLoader
         return new Vector3(rollX, pitchY, yawZ) * rad2deg;
     }
 
-    public static Vector3 CalcFrontVecFromRotation(Vector3 rotDeg)
-    {
-        Matrix4x4 rot = Matrix4x4.CreateRotationX(rotDeg.X * MathF.PI / 180f) *
-            Matrix4x4.CreateRotationY(rotDeg.Y * MathF.PI / 180f) *
-            Matrix4x4.CreateRotationZ(rotDeg.Z * MathF.PI / 180f);
-        return Vector3.TransformNormal(Vector3.UnitZ, rot);
-    }
+    public static Matrix4x4 ComposeRotationMatrix(Vector3 rotDeg) =>
+        Matrix4x4.CreateRotationX(rotDeg.X * MathF.PI / 180f) *
+        Matrix4x4.CreateRotationY(rotDeg.Y * MathF.PI / 180f) *
+        Matrix4x4.CreateRotationZ(rotDeg.Z * MathF.PI / 180f);
+
+    public static Vector3 CalcFrontVecFromRotation(Vector3 rotDeg) =>
+        Vector3.TransformNormal(Vector3.UnitZ, ComposeRotationMatrix(rotDeg));
 
     private static readonly BDLColor[] StarPieceColors =
     [

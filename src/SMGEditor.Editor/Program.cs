@@ -4,6 +4,7 @@ using NativeFileDialogSharp;
 using SMGEditor.Core;
 using SMGEditor.Core.Database;
 using SMGEditor.Core.Formats;
+using SMGEditor.Core.Gravity;
 using SMGEditor.Core.Simulation;
 using SMGEditor.Core.Stage;
 using SMGEditor.Editor;
@@ -850,12 +851,13 @@ window.Update += dt =>
     {
         foreach (EditableObject obj in session.Objects)
         {
-            if (obj.RailMoveSim is not null || obj.RotateMoveSim is not null || obj.WalkerStateWanderSim is not null || obj.AstroDomeOrbitSim is not null)
+            if (obj.RailMoveSim is not null || obj.RotateMoveSim is not null || obj.WalkerStateWanderSim is not null || obj.AstroDomeOrbitSim is not null || obj.RockRailSim is not null)
             {
                 obj.RailMoveSim = null;
                 obj.RotateMoveSim = null;
                 obj.WalkerStateWanderSim = null;
                 obj.AstroDomeOrbitSim = null;
+                obj.RockRailSim = null;
                 obj.SyncTransformToInstance();
             }
         }
@@ -866,7 +868,7 @@ window.Update += dt =>
     if (!playWaitAnimations)
     {
         string? selectedClassName = session?.Selected?.DbEntry?.ClassName(session.Game);
-        if (session?.Selected is { } selected && (selectedClassName == "RailMoveObj" || selectedClassName == "RotateMoveObj"))
+        if (session?.Selected is { } selected && (selectedClassName == "RailMoveObj" || selectedClassName == "RotateMoveObj" || selectedClassName == "RockCreator" || selectedClassName == "WanwanCreator"))
         {
             if (!ReferenceEquals(selected, selectedMapPartsSimObj))
             {
@@ -881,6 +883,7 @@ window.Update += dt =>
         {
             selectedMapPartsSimObj.RotateMoveSim = null;
             selectedMapPartsSimObj.RailMoveSim = null;
+            selectedMapPartsSimObj.RockRailSim = null;
             selectedMapPartsSimObj.SyncTransformToInstance();
             selectedMapPartsSimObj = null;
             selectedMapPartsClockSeconds = 0f;
@@ -7002,6 +7005,67 @@ void DrawViewportPanel()
             }
         }
 
+        void SimulateRock(EditableObject obj, string className, int deltaFrames)
+        {
+            if (obj.Instance is null || session is null)
+            {
+                return;
+            }
+
+            if (obj.RockRailSim is null)
+            {
+                int? pathLinkId = obj.Fields.TryGetValue("CommonPath_ID", out object? cpid) && cpid is int cpidValue && cpidValue != 65535
+                    ? cpidValue
+                    : null;
+                EditablePath? rail = pathLinkId is null
+                    ? null
+                    : session.Paths.FirstOrDefault(p => p.StagePath == obj.StagePath && p.LinkId == pathLinkId);
+
+                if (rail is null || rail.WorldPoints.Count == 0)
+                {
+                    return;
+                }
+
+                float moveSpeed = obj.Fields.TryGetValue("Obj_arg0", out object? arg0) && arg0 is int arg0Value && arg0Value >= 0
+                    ? arg0Value
+                    : 10f;
+
+                float radiusScale = className == "WanwanCreator" && obj.InternalName == "WanwanRollingMini"
+                    ? 0.3f
+                    : obj.Scale.X;
+
+                GravityZoneSet gravityZone = session.GetGravityZoneSet(obj.StagePath);
+                Vector3 fallbackUp = Vector3.TransformNormal(Vector3.UnitY, GalaxyLoader.ComposeRotationMatrix(obj.Rotation));
+
+                obj.RockRailSim = new RockRailSimState(rail.WorldPoints, rail.Closed, moveSpeed, radiusScale, obj.Position, gravityZone, fallbackUp);
+            }
+
+            RockRailSimState sim = obj.RockRailSim;
+            sim.Advance(deltaFrames);
+
+            Vector3 up = sim.Up;
+            Vector3 front = sim.Front;
+            Vector3 right = Vector3.Cross(up, front);
+            if (right.LengthSquared() < 1e-8f)
+            {
+                right = Vector3.UnitX;
+            }
+            else
+            {
+                right = Vector3.Normalize(right);
+            }
+
+            Vector3 correctedUp = Vector3.Normalize(Vector3.Cross(front, right));
+            var basis = new Matrix4x4(
+                right.X, right.Y, right.Z, 0f,
+                correctedUp.X, correctedUp.Y, correctedUp.Z, 0f,
+                front.X, front.Y, front.Z, 0f,
+                0f, 0f, 0f, 1f);
+
+            Matrix4x4 roll = Matrix4x4.CreateRotationX(sim.RollAngleDegrees * MathF.PI / 180f);
+            obj.Instance.WorldMatrix = Matrix4x4.CreateScale(obj.Scale) * roll * basis * Matrix4x4.CreateTranslation(sim.Position);
+        }
+
         void SimulateEnemyWander(EditableObject obj, string className, int deltaFrames)
         {
             if (obj.Instance is null)
@@ -7082,6 +7146,10 @@ void DrawViewportPanel()
                     {
                         SimulateMapPart(obj, className, deltaFrames);
                     }
+                    else if (className is "RockCreator" or "WanwanCreator")
+                    {
+                        SimulateRock(obj, className, deltaFrames);
+                    }
                     else if (className is "Kuribo" or "KuriboMini" or "KuriboChief")
                     {
                         SimulateEnemyWander(obj, className, deltaFrames);
@@ -7108,6 +7176,10 @@ void DrawViewportPanel()
                 if (className == "RailMoveObj" || className == "RotateMoveObj")
                 {
                     SimulateMapPart(selectedMapPartsSimObj, className, deltaFrames);
+                }
+                else if (className is "RockCreator" or "WanwanCreator")
+                {
+                    SimulateRock(selectedMapPartsSimObj, className, deltaFrames);
                 }
             }
         }

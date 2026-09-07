@@ -343,10 +343,7 @@ public static class Mat3Reader
         bool isMaya = (attributes & 0x80) != 0;
         byte texEffect = (byte)(attributes & 0x7F);
 
-        var origin = new Vector3(
-            BinaryPrimitives.ReadSingleBigEndian(data.AsSpan(offset + 0x4, 4)),
-            BinaryPrimitives.ReadSingleBigEndian(data.AsSpan(offset + 0x8, 4)),
-            BinaryPrimitives.ReadSingleBigEndian(data.AsSpan(offset + 0xC, 4)));
+        Vector3 origin = BinaryVectors.ReadVector3BigEndian(data, offset + 0x4);
 
         var scale = new Vector2(
             BinaryPrimitives.ReadSingleBigEndian(data.AsSpan(offset + 0x10, 4)),

@@ -39,9 +39,9 @@ public static class StagePlacementReader
                 results.Add(new PlacedObject
                 {
                     Name = row.TryGetValue("name", out object? name) ? (string?)name ?? "" : "",
-                    Position = ReadVector3(row, "pos_x", "pos_y", "pos_z"),
-                    RotationDegrees = ReadVector3(row, "dir_x", "dir_y", "dir_z"),
-                    Scale = ReadVector3(row, "scale_x", "scale_y", "scale_z", Vector3.One),
+                    Position = StageBcsvVector.ReadVector3(row, "pos_x", "pos_y", "pos_z"),
+                    RotationDegrees = StageBcsvVector.ReadVector3(row, "dir_x", "dir_y", "dir_z"),
+                    Scale = StageBcsvVector.ReadVector3(row, "scale_x", "scale_y", "scale_z", Vector3.One),
                     Layer = layer,
                     SourceList = fileName,
                     Fields = row,
@@ -50,17 +50,5 @@ public static class StagePlacementReader
         }
 
         return results;
-    }
-
-    private static Vector3 ReadVector3(IReadOnlyDictionary<string, object?> row, string x, string y, string z, Vector3? fallback = null)
-    {
-        if (row.TryGetValue(x, out object? xv) && xv is float xf &&
-            row.TryGetValue(y, out object? yv) && yv is float yf &&
-            row.TryGetValue(z, out object? zv) && zv is float zf)
-        {
-            return new Vector3(xf, yf, zf);
-        }
-
-        return fallback ?? Vector3.Zero;
     }
 }

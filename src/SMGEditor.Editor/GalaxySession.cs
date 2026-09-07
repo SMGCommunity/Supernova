@@ -1,6 +1,7 @@
 using System.Numerics;
 using SMGEditor.Core.Database;
 using SMGEditor.Core.Formats;
+using SMGEditor.Core.Gravity;
 using SMGEditor.Core.Simulation;
 using SMGEditor.Core.Stage;
 using SMGEditor.Viewer;
@@ -26,6 +27,19 @@ internal sealed class GalaxySession
     public HashSet<string> LoadedStagePaths { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public Dictionary<string, Matrix4x4> ZoneWorldMatrices { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly Dictionary<string, GravityZoneSet> _gravityZonesByStagePath = new(StringComparer.OrdinalIgnoreCase);
+
+    public GravityZoneSet GetGravityZoneSet(string stagePath)
+    {
+        if (!_gravityZonesByStagePath.TryGetValue(stagePath, out GravityZoneSet? zoneSet))
+        {
+            zoneSet = GravityZoneBuilder.Build(this, stagePath);
+            _gravityZonesByStagePath[stagePath] = zoneSet;
+        }
+
+        return zoneSet;
+    }
 
     public EditableObject? Selected { get; set; }
     public EditablePath? SelectedPath { get; set; }

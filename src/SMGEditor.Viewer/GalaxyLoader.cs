@@ -450,7 +450,8 @@ public static class GalaxyLoader
             (Vector3 min, Vector3 max) = ComputeLocalBounds(meshes);
 
             BCKAnimation? waitAnim = null;
-            RARCFile? waitFile = archive.Root.FindFileByName("Wait.bck");
+            string waitAnimFileName = WaitAnimationFileOverrides.GetValueOrDefault(name, "Wait.bck");
+            RARCFile? waitFile = archive.Root.FindFileByName(waitAnimFileName);
             if (waitFile is not null)
             {
                 try
@@ -753,6 +754,13 @@ public static class GalaxyLoader
         ["GliderShooter"] = [new("MogucchiSpike"), new("GliderBazooka")],
         ["KillerShooter"] = [new("MogucchiSpike"), new("GliderBazooka")],
         ["Grapyon"] = [new("GrapyonBody"), new("GrapyonHead", new Vector3(0f, 80f, 0f), Vector3.Zero, Vector3.One)],
+        ["Hanachan"] = [
+            new("HanachanHead"),
+            new("HanachanBodyS", new Vector3(0f, 0f, -87f), Vector3.Zero, Vector3.One),
+            new("HanachanBody", new Vector3(0f, 0f, -174f), Vector3.Zero, Vector3.One),
+            new("HanachanBodyS", new Vector3(0f, 0f, -261f), Vector3.Zero, Vector3.One),
+            new("HanachanBody", new Vector3(0f, 0f, -348f), Vector3.Zero, Vector3.One),
+        ],
         ["HammerHeadPackun"] = [new("PackunFlower"), new("PackunLeaf")],
         ["HammerHeadPackunSpike"] = [new("PackunFlowerSpike"), new("PackunLeafSpike")],
         ["Jugem"] = [new("Jugem"), new("JugemCloud")],
@@ -772,6 +780,13 @@ public static class GalaxyLoader
         ["YoshiEgg"] = [new("YoshiEgg"), new("YoshiNest")],
         ["YoshiFruit"] = [new("YoshiFruit", new Vector3(0f, 65f, 0f), Vector3.Zero, Vector3.One), new("YoshiFruitStem")],
         ["YoshiFruitBig"] = [new("YoshiFruitBig", new Vector3(0f, 115f, 0f), Vector3.Zero, Vector3.One), new("YoshiFruitStemBig")],
+    };
+
+    private static readonly Dictionary<string, string> WaitAnimationFileOverrides = new(StringComparer.Ordinal)
+    {
+        ["HanachanHead"] = "Walk.bck",
+        ["HanachanBody"] = "Walk.bck",
+        ["HanachanBodyS"] = "Walk.bck",
     };
 
     private static readonly Dictionary<string, string> CircleCoinGroupModel = new(StringComparer.Ordinal)

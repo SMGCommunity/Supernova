@@ -26,6 +26,9 @@ public sealed class ObjectInstance
     public required LoadedObject Object { get; init; }
     public required Matrix4x4 WorldMatrix { get; set; }
     public int LightGroup { get; set; } = 3;
+
+    public List<RenderMesh>? OwnRenderMeshes { get; set; }
+    public int AnimationPhaseFrames { get; set; }
 }
 
 public sealed class RenderMesh

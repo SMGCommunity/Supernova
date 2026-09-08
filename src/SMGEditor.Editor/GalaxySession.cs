@@ -169,6 +169,17 @@ internal sealed class GalaxySession
         obj.OceanRingMesh = newMesh;
     }
 
+    private static void GivePerInstanceWalkAnimationPhase(ObjectInstance instance, int phaseFrames, SceneRenderer renderer)
+    {
+        if (instance.Object.WaitAnimation is null)
+        {
+            return;
+        }
+
+        instance.OwnRenderMeshes = instance.Object.Meshes.Select(renderer.UploadMeshOnly).ToList();
+        instance.AnimationPhaseFrames = phaseFrames;
+    }
+
     private static void ReplaceLoadedObjectMesh(LoadedObject loaded, GpuMesh newMesh, SceneRenderer renderer)
     {
         foreach (RenderMesh old in loaded.RenderMeshes)
@@ -827,6 +838,17 @@ internal sealed class GalaxySession
                     var partInstance = new ObjectInstance { Object = partModel, WorldMatrix = localOffset * worldMatrix, LightGroup = lightGroup };
                     instances.Add(partInstance);
                     extraParts.Add((localOffset, partInstance));
+                }
+            }
+
+            if (po.Name == "Hanachan" && instance is not null && extraParts is not null)
+            {
+                const int walkAnimPhaseStepFrames = 0;
+
+                GivePerInstanceWalkAnimationPhase(instance, 0, renderer);
+                for (int i = 0; i < extraParts.Count; i++)
+                {
+                    GivePerInstanceWalkAnimationPhase(extraParts[i].Instance, walkAnimPhaseStepFrames * (i + 1), renderer);
                 }
             }
 

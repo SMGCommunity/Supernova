@@ -85,6 +85,8 @@ internal sealed class EditableObject : IGizmoTarget
 
     public RockRailSimState? RockRailSim { get; set; }
 
+    public HanachanSimState? HanachanSim { get; set; }
+
     public List<ObjectInstance>? ElectricRailPoints { get; init; }
 
     public BTKUvAnimEntry? ElectricRailUvAnim { get; set; }

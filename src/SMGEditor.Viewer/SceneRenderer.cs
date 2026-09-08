@@ -772,7 +772,7 @@ public sealed partial class SceneRenderer
                 UploadLightGroup(g);
             }
 
-            foreach (RenderMesh rm in obj.RenderMeshes)
+            foreach (RenderMesh rm in instance.OwnRenderMeshes ?? obj.RenderMeshes)
             {
                 BDLMaterial material = obj.Model.Materials[rm.MaterialIndex];
                 if ((material.BlendMode.Type == BDLBlendType.Blend) != wantTranslucent)

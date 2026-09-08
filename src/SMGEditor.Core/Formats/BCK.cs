@@ -10,6 +10,8 @@ public sealed class BCKTrack
 {
     public required List<BCKKeyframe> Keyframes { get; init; }
 
+    public bool IsAngle { get; init; }
+
     public float Sample(float frame)
     {
         if (Keyframes.Count == 0)
@@ -34,6 +36,12 @@ public sealed class BCKTrack
                     return prev.Value;
                 }
 
+                float nextValue = next.Value;
+                if (IsAngle)
+                {
+                    nextValue -= 360f * MathF.Round((nextValue - prev.Value) / 360f);
+                }
+
                 float t = (frame - prev.Frame) / span;
                 float t2 = t * t;
                 float t3 = t2 * t;
@@ -41,7 +49,7 @@ public sealed class BCKTrack
                 float h10 = t3 - (2f * t2) + t;
                 float h01 = (-2f * t3) + (3f * t2);
                 float h11 = t3 - t2;
-                return (h00 * prev.Value) + (h10 * span * prev.TangentOut) + (h01 * next.Value) + (h11 * span * next.TangentIn);
+                return (h00 * prev.Value) + (h10 * span * prev.TangentOut) + (h01 * nextValue) + (h11 * span * next.TangentIn);
             }
         }
 
@@ -179,14 +187,14 @@ public static class BCKReader
 
         if (count == 0)
         {
-            return new BCKTrack { Keyframes = [new BCKKeyframe(0f, 0f, 0f, 0f)] };
+            return new BCKTrack { Keyframes = [new BCKKeyframe(0f, 0f, 0f, 0f)], IsAngle = true };
         }
 
         int pos = dataBase + (keyIndex * 2);
         if (count == 1)
         {
             short raw = BinaryPrimitives.ReadInt16BigEndian(data.AsSpan(pos, 2));
-            return new BCKTrack { Keyframes = [new BCKKeyframe(0f, raw * rotationScale, 0f, 0f)] };
+            return new BCKTrack { Keyframes = [new BCKKeyframe(0f, raw * rotationScale, 0f, 0f)], IsAngle = true };
         }
 
         int stride = type == 0 ? 3 : 4;
@@ -209,6 +217,6 @@ public static class BCKReader
             }
         }
 
-        return new BCKTrack { Keyframes = keyframes };
+        return new BCKTrack { Keyframes = keyframes, IsAngle = true };
     }
 }

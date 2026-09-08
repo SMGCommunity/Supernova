@@ -851,13 +851,14 @@ window.Update += dt =>
     {
         foreach (EditableObject obj in session.Objects)
         {
-            if (obj.RailMoveSim is not null || obj.RotateMoveSim is not null || obj.WalkerStateWanderSim is not null || obj.AstroDomeOrbitSim is not null || obj.RockRailSim is not null)
+            if (obj.RailMoveSim is not null || obj.RotateMoveSim is not null || obj.WalkerStateWanderSim is not null || obj.AstroDomeOrbitSim is not null || obj.RockRailSim is not null || obj.HanachanSim is not null)
             {
                 obj.RailMoveSim = null;
                 obj.RotateMoveSim = null;
                 obj.WalkerStateWanderSim = null;
                 obj.AstroDomeOrbitSim = null;
                 obj.RockRailSim = null;
+                obj.HanachanSim = null;
                 obj.SyncTransformToInstance();
             }
         }
@@ -1676,24 +1677,24 @@ void DrawMenuBar()
 
         if (ImGui.BeginMenu(L("View")))
         {
-            ImGui.MenuItem(L("Play Object Animations"), "", ref playWaitAnimations);
+            ImGui.Checkbox(L("Play Object Animations"), ref playWaitAnimations);
 
-            ImGui.MenuItem(L("Show Paths"), "", ref showPaths);
-
-            ImGui.Separator();
-            ImGui.MenuItem(L("Show Camera Areas"), "", ref showCameraAreas);
-            ImGui.MenuItem(L("Show Regular Areas"), "", ref showRegularAreas);
-            ImGui.MenuItem(L("Show Gravity Areas"), "", ref showGravityAreas);
+            ImGui.Checkbox(L("Show Paths"), ref showPaths);
 
             ImGui.Separator();
-            ImGui.MenuItem(L("Preview Lighting (LightData)"), "", ref previewLighting);
+            ImGui.Checkbox(L("Show Camera Areas"), ref showCameraAreas);
+            ImGui.Checkbox(L("Show Regular Areas"), ref showRegularAreas);
+            ImGui.Checkbox(L("Show Gravity Areas"), ref showGravityAreas);
+
+            ImGui.Separator();
+            ImGui.Checkbox(L("Preview Lighting (LightData)"), ref previewLighting);
             ImGui.BeginDisabled(!previewLighting);
             ImGui.SetNextItemWidth(180 * UiScale);
             ImGui.Combo(L("Light group"), ref previewLightGroupChoice, previewLightGroupChoices, previewLightGroupChoices.Length);
             ImGui.EndDisabled();
 
             ImGui.Separator();
-            ImGui.MenuItem(L("Orthographic Camera"), "", ref orthographicCamera);
+            ImGui.Checkbox(L("Orthographic Camera"), ref orthographicCamera);
             ImGui.EndMenu();
         }
 
@@ -6899,6 +6900,32 @@ void DrawViewportPanel()
                 }
             }
 
+            foreach (ObjectInstance instance in session.Instances)
+            {
+                if (instance.OwnRenderMeshes is not { } ownRenderMeshes)
+                {
+                    continue;
+                }
+
+                LoadedObject obj = instance.Object;
+                if (obj.WaitAnimation is not { } anim)
+                {
+                    continue;
+                }
+
+                float animFrame = anim.EndFrame > 0 ? (waitAnimationClockSeconds * 60f + instance.AnimationPhaseFrames) % anim.EndFrame : 0f;
+                Matrix4x4[] animatedJointMatrices = BDLMeshBuilder.ComputeAnimatedJointWorldMatrices(obj.Model, anim, animFrame);
+                Matrix4x4[] inverseBindMatrices = obj.CachedInverseBindMatrices ??= BDLMeshBuilder.ComputeInverseBindMatrices(obj.Model);
+
+                for (int m = 0; m < obj.Meshes.Count && m < ownRenderMeshes.Count; m++)
+                {
+                    GpuMesh gpuMesh = obj.Meshes[m];
+                    float[] rebaked = gpuMesh.RebakeScratch ??= new float[gpuMesh.Vertices.Length];
+                    BDLMeshBuilder.RebakeVertices(gpuMesh, animatedJointMatrices, inverseBindMatrices, rebaked);
+                    renderer!.UpdateMeshVertices(ownRenderMeshes[m], rebaked);
+                }
+            }
+
             foreach (EditableObject obj in session.Objects)
             {
                 if (obj.Instance is null)
@@ -7131,6 +7158,68 @@ void DrawViewportPanel()
                 Matrix4x4.CreateTranslation(orbitPos);
         }
 
+        void SimulateHanachan(EditableObject obj, int deltaFrames)
+        {
+            if (obj.Instance is null || obj.ExtraParts is null || session is null)
+            {
+                return;
+            }
+
+            if (obj.HanachanSim is null)
+            {
+                int? pathLinkId = obj.Fields.TryGetValue("CommonPath_ID", out object? cpid) && cpid is int cpidValue && cpidValue != 65535
+                    ? cpidValue
+                    : null;
+                EditablePath? rail = pathLinkId is null
+                    ? null
+                    : session.Paths.FirstOrDefault(p => p.StagePath == obj.StagePath && p.LinkId == pathLinkId);
+
+                if (rail is null || rail.WorldPoints.Count == 0)
+                {
+                    return;
+                }
+
+                GravityZoneSet gravityZone = session.GetGravityZoneSet(obj.StagePath);
+                Vector3 fallbackUp = Vector3.TransformNormal(Vector3.UnitY, GalaxyLoader.ComposeRotationMatrix(obj.Rotation));
+
+                obj.HanachanSim = new HanachanSimState(rail.WorldPoints, rail.Closed, obj.Position, gravityZone, fallbackUp);
+            }
+
+            HanachanSimState sim = obj.HanachanSim;
+            sim.Advance(deltaFrames);
+
+            obj.Instance.WorldMatrix = ComposeHanachanPartMatrix(sim, 0, obj.Scale);
+
+            for (int i = 0; i < obj.ExtraParts.Count && i + 1 < HanachanSimState.PartCount; i++)
+            {
+                obj.ExtraParts[i].Instance.WorldMatrix = ComposeHanachanPartMatrix(sim, i + 1, obj.Scale);
+            }
+        }
+
+        Matrix4x4 ComposeHanachanPartMatrix(HanachanSimState sim, int partIndex, Vector3 scale)
+        {
+            Vector3 up = sim.Ups[partIndex];
+            Vector3 front = sim.Fronts[partIndex];
+            Vector3 right = Vector3.Cross(up, front);
+            if (right.LengthSquared() < 1e-8f)
+            {
+                right = Vector3.UnitX;
+            }
+            else
+            {
+                right = Vector3.Normalize(right);
+            }
+
+            Vector3 correctedUp = Vector3.Normalize(Vector3.Cross(front, right));
+            var basis = new Matrix4x4(
+                right.X, right.Y, right.Z, 0f,
+                correctedUp.X, correctedUp.Y, correctedUp.Z, 0f,
+                front.X, front.Y, front.Z, 0f,
+                0f, 0f, 0f, 1f);
+
+            return Matrix4x4.CreateScale(scale) * basis * Matrix4x4.CreateTranslation(sim.Positions[partIndex]);
+        }
+
         if (playWaitAnimations && session is not null)
         {
             int targetFrame = (int)(waitAnimationClockSeconds * 60f);
@@ -7157,6 +7246,10 @@ void DrawViewportPanel()
                     else if (className == "MiniatureGalaxy")
                     {
                         SimulateAstroDomeOrbit(obj, deltaFrames);
+                    }
+                    else if (className == "Hanachan")
+                    {
+                        SimulateHanachan(obj, deltaFrames);
                     }
 
                     obj.OceanRingSim?.Advance(deltaFrames);

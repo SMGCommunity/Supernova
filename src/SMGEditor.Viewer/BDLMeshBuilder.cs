@@ -427,6 +427,20 @@ public static class BDLMeshBuilder
         return ComposeWorldMatrices(model, local);
     }
 
+    public static Matrix4x4[] ComputeJointWorldMatricesWithOverrides(BDLModel model, IReadOnlyDictionary<int, Matrix4x4> jointWorldOverrides)
+    {
+        Matrix4x4[] world = ComputeJointWorldMatrices(model);
+        foreach ((int index, Matrix4x4 mtx) in jointWorldOverrides)
+        {
+            if (index >= 0 && index < world.Length)
+            {
+                world[index] = mtx;
+            }
+        }
+
+        return world;
+    }
+
     public static Matrix4x4[] ComputeAnimatedJointWorldMatrices(BDLModel model, BCKAnimation anim, float frame)
     {
         var local = new Matrix4x4[model.Joints.Count];

@@ -675,6 +675,118 @@ internal sealed class GalaxySession
             return noteInstances;
         }
 
+        LoadedObject? BuildPoleInstance(PlacedObject placement)
+        {
+            LoadedObject? template = LoadAndCacheModel(placement.Name);
+            if (template is null || template.Meshes.Count == 0)
+            {
+                return null;
+            }
+
+            bool isSquare = placement.Name == "PoleSquare";
+            if (placement.Name != "Pole" && !isSquare)
+            {
+                return template;
+            }
+
+            int bottomIndex = -1;
+            int topIndex = -1;
+            for (int i = 0; i < template.Model.Joints.Count; i++)
+            {
+                if (template.Model.Joints[i].Name == "PoleBottom")
+                {
+                    bottomIndex = i;
+                }
+                else if (template.Model.Joints[i].Name == "PoleTop")
+                {
+                    topIndex = i;
+                }
+            }
+
+            if (bottomIndex < 0 || topIndex < 0)
+            {
+                return template;
+            }
+
+            float poleLength = 100f * placement.Scale.Y;
+            float topCoord = poleLength + (isSquare ? 100f : 0f);
+
+            Matrix4x4 rot = GalaxyLoader.ComposeRotationMatrix(placement.RotationDegrees);
+            Vector3 side = Vector3.TransformNormal(Vector3.UnitX, rot);
+            Vector3 up = Vector3.TransformNormal(Vector3.UnitY, rot);
+            Vector3 front = Vector3.TransformNormal(Vector3.UnitZ, rot);
+
+            Matrix4x4 MakeBasisMatrix(Vector3 translation) => new(
+                side.X, side.Y, side.Z, 0f,
+                up.X, up.Y, up.Z, 0f,
+                front.X, front.Y, front.Z, 0f,
+                translation.X, translation.Y, translation.Z, 1f);
+
+            var jointOverrides = new Dictionary<int, Matrix4x4>
+            {
+                [bottomIndex] = MakeBasisMatrix(placement.Position),
+                [topIndex] = MakeBasisMatrix(placement.Position + (up * topCoord)),
+            };
+
+            Matrix4x4[] jointWorlds = BDLMeshBuilder.ComputeJointWorldMatricesWithOverrides(template.Model, jointOverrides);
+            Matrix4x4[] invBind = BDLMeshBuilder.ComputeInverseBindMatrices(template.Model);
+
+            var rebakedMeshes = new List<GpuMesh>(template.Meshes.Count);
+            foreach (GpuMesh mesh in template.Meshes)
+            {
+                var rebaked = new float[mesh.Vertices.Length];
+                BDLMeshBuilder.RebakeVertices(mesh, jointWorlds, invBind, rebaked);
+                rebakedMeshes.Add(new GpuMesh
+                {
+                    MaterialIndex = mesh.MaterialIndex,
+                    Texture0Index = mesh.Texture0Index,
+                    Texture1Index = mesh.Texture1Index,
+                    Texture2Index = mesh.Texture2Index,
+                    Texture3Index = mesh.Texture3Index,
+                    Texture0Slot = mesh.Texture0Slot,
+                    Texture1Slot = mesh.Texture1Slot,
+                    Texture2Slot = mesh.Texture2Slot,
+                    Texture3Slot = mesh.Texture3Slot,
+                    IndirectTextureIndex = mesh.IndirectTextureIndex,
+                    Uv0EnvMapMatrix = mesh.Uv0EnvMapMatrix,
+                    Uv1EnvMapMatrix = mesh.Uv1EnvMapMatrix,
+                    Uv2EnvMapMatrix = mesh.Uv2EnvMapMatrix,
+                    Uv3EnvMapMatrix = mesh.Uv3EnvMapMatrix,
+                    Vertices = rebaked,
+                    VertexCount = mesh.VertexCount,
+                    VertexJointIndices = mesh.VertexJointIndices,
+                    VertexJointWeights = mesh.VertexJointWeights,
+                    VertexIsWeighted = mesh.VertexIsWeighted,
+                    LocalPositions = mesh.LocalPositions,
+                    LocalNormals = mesh.LocalNormals,
+                });
+            }
+
+            (Vector3 min, Vector3 max) = GalaxyLoader.ComputeLocalBounds(rebakedMeshes);
+            var poleLoaded = new LoadedObject
+            {
+                Name = template.Name,
+                Model = template.Model,
+                Meshes = rebakedMeshes,
+                LocalBoundsMin = min,
+                LocalBoundsMax = max,
+                WaitAnimation = null,
+                IsPreBakedWorldSpace = true,
+            };
+
+            foreach ((int key, uint handle) in template.TextureHandles)
+            {
+                poleLoaded.TextureHandles[key] = handle;
+            }
+
+            foreach (GpuMesh mesh in rebakedMeshes)
+            {
+                poleLoaded.RenderMeshes.Add(renderer.UploadMeshOnly(mesh));
+            }
+
+            return poleLoaded;
+        }
+
         LoadedObject? BuildStarPieceInstance(PlacedObject placement)
         {
             bool isFirstStarPieceLoad = !loadedModels.ContainsKey("StarPiece");
@@ -785,6 +897,10 @@ internal sealed class GalaxySession
                 model = null;
                 noteFairyNotes = BuildNoteFairyInstance(po);
             }
+            else if (db.FindObject(po.Name)?.ClassName(Game) == "Pole")
+            {
+                model = BuildPoleInstance(po);
+            }
             else if (po.Name == "StarPiece")
             {
                 model = BuildStarPieceInstance(po);
@@ -819,6 +935,11 @@ internal sealed class GalaxySession
                 worldPosition = translation;
                 worldRotation = GalaxyLoader.EulerXyzFromMatrix(Matrix4x4.CreateFromQuaternion(rotation));
                 worldScale = scale;
+            }
+
+            if (dbEntry?.ClassName(Game) == "Pole")
+            {
+                worldScale = Vector3.One;
             }
 
             ObjectInstance? instance = null;

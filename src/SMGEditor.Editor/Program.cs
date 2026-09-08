@@ -349,6 +349,8 @@ EditableObject? pendingPlacement = null;
 
 EditablePath? pendingPath = null;
 
+EditableObject? pendingPathAssignTarget = null;
+
 (EditablePath Path, int InsertIndex)? pendingPathPointInsert = null;
 
 Vector3? pendingPathSurfaceSnap = null;
@@ -5150,15 +5152,16 @@ void BeginAddObjectPlacement(ObjectDbEntry entry)
 
 void BeginAddStartingPointPlacement() => BeginPlacement("Mario", "StartInfo", null, null);
 
-void BeginAddPath()
+void BeginAddPath(string? forceStagePath = null)
 {
     if (session is null)
     {
         return;
     }
 
-    string stagePath = !string.IsNullOrEmpty(addObjectSelectedZone) ? addObjectSelectedZone
-        : session.SelectedPath?.StagePath
+    string stagePath = forceStagePath
+        ?? (!string.IsNullOrEmpty(addObjectSelectedZone) ? addObjectSelectedZone : null)
+        ?? session.SelectedPath?.StagePath
         ?? session.Selected?.StagePath
         ?? session.GalaxyName;
 
@@ -5214,6 +5217,8 @@ void FinishPendingPath()
     }
 
     pendingPath = null;
+    EditableObject? assignTarget = pendingPathAssignTarget;
+    pendingPathAssignTarget = null;
 
     if (path.WorldPoints.Count >= 2)
     {
@@ -5240,6 +5245,14 @@ void FinishPendingPath()
 
                 session.SelectedPath = path;
             });
+
+        if (assignTarget is not null)
+        {
+            SetObjectPathLink(assignTarget, path.LinkId);
+            session.Selected = assignTarget;
+            session.SelectedPath = null;
+            statusMessage = LF("Path created with {0} points and assigned to {1}.", path.WorldPoints.Count, assignTarget.DisplayName);
+        }
     }
     else
     {
@@ -5250,6 +5263,11 @@ void FinishPendingPath()
         }
 
         statusMessage = L("Path needs at least 2 points - discarded.");
+
+        if (assignTarget is not null)
+        {
+            session.Selected = assignTarget;
+        }
     }
 }
 
@@ -5721,6 +5739,11 @@ void DrawParameterPanel()
 
             DrawParameterField(obj, key, param);
         }
+    }
+
+    if (obj.DbClass?.Parameters.TryGetValue("Rail", out ObjectDbParameter? railParam) == true)
+    {
+        DrawRailField(obj, railParam);
     }
 
     if (obj.DbClass?.Parameters.ContainsKey("Message") == true && obj.Fields.TryGetValue("MessageId", out object? messageIdVal))
@@ -6527,6 +6550,78 @@ void DrawCameraParamField(Dictionary<string, object?> fields, string key, object
             ImGui.Text($"{label}: {value}");
             break;
     }
+}
+
+void DrawRailField(EditableObject obj, ObjectDbParameter param)
+{
+    if (session is null)
+    {
+        return;
+    }
+
+    int currentLinkId = obj.Fields.TryGetValue("CommonPath_ID", out object? cpid) && cpid is int cpidValue && cpidValue != 65535 ? cpidValue : -1;
+
+    List<EditablePath> pathsInZone = session.Paths.Where(p => p.StagePath == obj.StagePath).OrderBy(p => p.No).ToList();
+    EditablePath? currentPath = currentLinkId >= 0 ? pathsInZone.FirstOrDefault(p => p.LinkId == currentLinkId) : null;
+
+    string currentLabel = currentLinkId < 0
+        ? L("(None)")
+        : currentPath is not null
+            ? (currentPath.Name.Length > 0 ? currentPath.Name : LF("Path {0}", currentPath.No))
+            : LF("(missing, l_id {0})", currentLinkId);
+
+    ImGui.SetNextItemWidth(220 * UiScale);
+    if (ImGui.BeginCombo(param.Name ?? L("Path"), currentLabel))
+    {
+        if (ImGui.Selectable(L("Add Path...")))
+        {
+            pendingPathAssignTarget = obj;
+            BeginAddPath(obj.StagePath);
+        }
+
+        ImGui.Separator();
+
+        if (ImGui.Selectable(L("(None)"), currentLinkId < 0))
+        {
+            SetObjectPathLink(obj, null);
+        }
+
+        foreach (EditablePath p in pathsInZone)
+        {
+            string label = p.Name.Length > 0 ? p.Name : LF("Path {0}", p.No);
+            if (ImGui.Selectable($"{label}##path{p.LinkId}", p.LinkId == currentLinkId))
+            {
+                SetObjectPathLink(obj, p.LinkId);
+            }
+        }
+
+        ImGui.EndCombo();
+    }
+
+    if (param.Description is { Length: > 0 } desc && ImGui.IsItemHovered())
+    {
+        ImGui.SetTooltip(desc);
+    }
+}
+
+void SetObjectPathLink(EditableObject obj, int? linkId)
+{
+    object? before = obj.Fields.TryGetValue("CommonPath_ID", out object? v) ? v : null;
+    object after = linkId ?? 65535;
+
+    void ClearSims()
+    {
+        obj.RailMoveSim = null;
+        obj.RockRailSim = null;
+        obj.HanachanSim = null;
+    }
+
+    obj.Fields["CommonPath_ID"] = after;
+    ClearSims();
+
+    session!.History.Push(
+        () => { obj.Fields["CommonPath_ID"] = before ?? 65535; ClearSims(); },
+        () => { obj.Fields["CommonPath_ID"] = after; ClearSims(); });
 }
 
 void DrawParameterField(EditableObject obj, string key, ObjectDbParameter param)

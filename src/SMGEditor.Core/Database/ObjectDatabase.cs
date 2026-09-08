@@ -23,6 +23,9 @@ public sealed class ObjectDbParameter
     [JsonPropertyName("Description")]
     public string? Description { get; init; }
 
+    [JsonPropertyName("Needed")]
+    public bool Needed { get; init; }
+
     [JsonPropertyName("Values")]
     public List<ObjectDbValueOption> Values { get; init; } = [];
 

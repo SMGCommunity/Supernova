@@ -500,6 +500,8 @@ bool pendingCloseLevelEditorWindow = false;
 
 bool showUnsavedChangesPopup = false;
 Action? pendingDiscardAction = null;
+bool showMissingRailPopup = false;
+List<EditableObject> objectsMissingRail = [];
 
 bool bypassCloseConfirmOnce = false;
 
@@ -1321,6 +1323,7 @@ void DrawHost()
 
     DrawMenuBar();
     DrawUnsavedChangesPopup();
+    DrawMissingRailPopup();
     DrawMessageEditWindow();
     DrawLightEditorPopup();
     DrawProductMapObjEditorPopup();
@@ -1497,12 +1500,100 @@ void SaveCurrentGalaxy()
         return;
     }
 
+    List<EditableObject> missingRail = FindObjectsMissingRequiredRail(session);
+    if (missingRail.Count > 0)
+    {
+        objectsMissingRail = missingRail;
+        showMissingRailPopup = true;
+        return;
+    }
+
+    PerformSave();
+}
+
+void PerformSave()
+{
+    if (session is null)
+    {
+        return;
+    }
+
     statusMessage = SaveGalaxy.Save(session);
 
     if (session.OutputDir is not null)
     {
         session.History.MarkSaved();
     }
+}
+
+List<EditableObject> FindObjectsMissingRequiredRail(GalaxySession activeSession)
+{
+    var missing = new List<EditableObject>();
+    foreach (EditableObject obj in activeSession.Objects)
+    {
+        if (obj.DbClass?.Parameters.GetValueOrDefault("Rail")?.Needed != true)
+        {
+            continue;
+        }
+
+        bool hasRail = obj.Fields.TryGetValue("CommonPath_ID", out object? cpid) && cpid is int cpidValue && cpidValue != 65535;
+        if (!hasRail)
+        {
+            missing.Add(obj);
+        }
+    }
+
+    return missing;
+}
+
+void DrawMissingRailPopup()
+{
+    if (showMissingRailPopup)
+    {
+        ImGui.OpenPopup($"{L("Missing Required Path")}###MissingRequiredPath");
+        showMissingRailPopup = false;
+    }
+
+    if (!ImGui.BeginPopupModal($"{L("Missing Required Path")}###MissingRequiredPath", ImGuiWindowFlags.AlwaysAutoResize))
+    {
+        return;
+    }
+
+    ImGui.TextColored(new Vector4(0.95f, 0.5f, 0.4f, 1f), L("These objects require a path (CommonPath_ID) to work and will crash the game without one:"));
+    ImGui.Spacing();
+
+    if (ImGui.BeginChild("##MissingRailList", new Vector2(440, 220) * UiScale, ImGuiChildFlags.Border))
+    {
+        foreach (EditableObject obj in objectsMissingRail)
+        {
+            if (ImGui.Selectable($"{obj.DisplayName}##{obj.GetHashCode()}", ReferenceEquals(session?.Selected, obj)))
+            {
+                session!.Selected = obj;
+            }
+
+            ImGui.SameLine();
+            ImGui.TextDisabled($"({obj.StagePath} / {obj.Layer})");
+        }
+    }
+
+    ImGui.EndChild();
+    ImGui.Spacing();
+
+    if (ImGui.Button(L("Save Anyway"), new Vector2(140 * UiScale, 0)))
+    {
+        PerformSave();
+        objectsMissingRail = [];
+        ImGui.CloseCurrentPopup();
+    }
+
+    ImGui.SameLine();
+    if (ImGui.Button(L("Cancel"), new Vector2(140 * UiScale, 0)))
+    {
+        objectsMissingRail = [];
+        ImGui.CloseCurrentPopup();
+    }
+
+    ImGui.EndPopup();
 }
 
 void RequestDiscardChanges(Action proceed)
